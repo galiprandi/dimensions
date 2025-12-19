@@ -1,5 +1,5 @@
 import systemPromptGuide from '../../../prompts/system-prompt-guide.md?raw'
-import { filterAndNumberQuestionLines, numberQuestionLines } from './questions'
+import { filterQuestionLines } from './questions'
 import type { GraphQLInterviewResponse } from './types'
 
 export function buildPromptFromResponse(parsed: unknown) {
@@ -73,11 +73,10 @@ export function buildPromptFromResponse(parsed: unknown) {
           const subName = typeof s?.name === 'string' ? s.name.trim() : ''
           const q = typeof s?.questions === 'string' ? s.questions.trim() : ''
           if (!q) continue
-          const numbered = numberQuestionLines(q)
           if (subName) {
-            questionsParts.push(`## ${subName}\n\n${numbered}`)
+            questionsParts.push(`## ${subName}\n\n${q}`)
           } else {
-            questionsParts.push(numbered)
+            questionsParts.push(q)
           }
         }
       }
@@ -95,6 +94,19 @@ export function buildPromptFromResponse(parsed: unknown) {
       const dimId = typeof dimensionId === 'string' ? dimensionId.trim() : ''
       if (dimId) evaluatedDimensionIds.add(dimId)
     }
+  }
+
+  const preferredDimensionOrder = [
+    'Persistence',
+    'Observability',
+    'Infrastructure',
+    'Testing',
+    'System Design',
+    'AI Augmented Mindset',
+  ]
+  const preferredDimensionIndex = new Map<string, number>()
+  for (let i = 0; i < preferredDimensionOrder.length; i++) {
+    preferredDimensionIndex.set(preferredDimensionOrder[i], i)
   }
 
   const dimensionOrderFromInterview: string[] = []
@@ -128,11 +140,33 @@ export function buildPromptFromResponse(parsed: unknown) {
     }
   }
 
+  if (orderedEvaluatedDimensionIds.length > 1) {
+    const withMeta = orderedEvaluatedDimensionIds.map((id, originalIndex) => {
+      const name = idToDimension.get(id)?.name || ''
+      const preferred = preferredDimensionIndex.get(name)
+      return { id, originalIndex, preferred }
+    })
+
+    withMeta.sort((a, b) => {
+      const aHas = typeof a.preferred === 'number'
+      const bHas = typeof b.preferred === 'number'
+      if (aHas && bHas) return (a.preferred as number) - (b.preferred as number)
+      if (aHas && !bHas) return -1
+      if (!aHas && bHas) return 1
+      return a.originalIndex - b.originalIndex
+    })
+
+    orderedEvaluatedDimensionIds.length = 0
+    for (const x of withMeta) orderedEvaluatedDimensionIds.push(x.id)
+  }
+
   if (orderedEvaluatedDimensionIds.length === 0) {
     return { ok: true as const, text: 'No se encontraron evaluaciones de dimensiones.' }
   }
 
   const blocks: string[] = []
+
+  let sectionNumber = 0
 
   blocks.push(systemPromptGuide.trim())
   blocks.push('')
@@ -143,13 +177,15 @@ export function buildPromptFromResponse(parsed: unknown) {
   blocks.push(`## Candidato: ${candidateName || '[Completar]'} `)
   blocks.push('')
 
-  for (const dimId of orderedEvaluatedDimensionIds) {
+  for (let idx = 0; idx < orderedEvaluatedDimensionIds.length; idx++) {
+    const dimId = orderedEvaluatedDimensionIds[idx]
     const dimInfo = idToDimension.get(dimId)
     const title = dimInfo?.name || `Dimension ${dimId}`
     const questionsBlock = dimInfo?.questionsBlock
     const existingNotes = dimensionIdToExistingNotes.get(dimId)
 
-    blocks.push(`## ${title}`)
+    sectionNumber++
+    blocks.push(`## ${sectionNumber}. ${title}`)
     if (questionsBlock) blocks.push(questionsBlock)
     if (existingNotes) blocks.push(`Mis notas son: ${existingNotes}`)
     blocks.push('')
@@ -192,7 +228,7 @@ export function buildPromptFromResponse(parsed: unknown) {
             const q = typeof topic?.questions === 'string' ? topic.questions.trim() : ''
             if (!q) continue
 
-            const filtered = filterAndNumberQuestionLines(q)
+            const filtered = filterQuestionLines(q)
             if (!filtered) continue
 
             if (topicName) {
@@ -206,16 +242,20 @@ export function buildPromptFromResponse(parsed: unknown) {
         const topicQuestionsText = topicQuestionsParts.length > 0 ? topicQuestionsParts.join('\n\n') : ''
         const stackQuestionsBlock = topicQuestionsText ? `<!--\nPreguntas (guía):\n\n${topicQuestionsText}\n-->` : ''
 
+        sectionNumber++
+        const stackTitle = `## ${sectionNumber}. ${name}`
+
         if (stackQuestionsBlock) {
-          stackBlocks.push(`### ${name}\n\n${stackQuestionsBlock}\n\nMis notas son: ${conclusionText}`)
+          stackBlocks.push(`${stackTitle}\n\n${stackQuestionsBlock}\n\nMis notas son: ${conclusionText}`)
         } else {
-          stackBlocks.push(`### ${name}\n\nMis notas son: ${conclusionText}`)
+          stackBlocks.push(`${stackTitle}\n\nMis notas son: ${conclusionText}`)
         }
       }
     } else {
       for (const [stackId, conclusionText] of evalByStackId.entries()) {
         const stackName = mainStackIdToName.get(stackId) || `MainStack ${stackId}`
-        stackBlocks.push(`### ${stackName}\n\nMis notas son: ${conclusionText}`)
+        sectionNumber++
+        stackBlocks.push(`## ${sectionNumber}. ${stackName}\n\nMis notas son: ${conclusionText}`)
       }
     }
 
