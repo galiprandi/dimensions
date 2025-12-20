@@ -8,7 +8,7 @@ export type InterviewListItem = {
 
 
 const INTERVIEWS_QUERY =
-  'query ($take: Int!, $skip: Int!) {\n  items: interviews(take: $take, skip: $skip) {\n    id\n    professionalName\n    status\n    deepProfile\n  }\n}'
+  'query ($take: Int!, $skip: Int!) {\n  items: interviews(take: $take, skip: $skip) {\n    id\n    professionalName\n    status\n    deepProfile\n    professional {\n      photoURL\n      seniority\n    }\n  }\n}'
 
 export async function fetchInterviews(params: { take: number; skip: number }) {
   const res = await fetch('/api/graphql', {
@@ -37,10 +37,12 @@ export async function fetchInterviews(params: { take: number; skip: number }) {
     throw new Error(json.errors[0].message)
   }
 
-  return json.data.items.map((item: { id: string; professionalName: string; status: string; deepProfile: unknown }) => ({
+  return json.data.items.map((item: { id: string; professionalName: string; status: string; deepProfile: unknown; professional: { photoURL: string; seniority: string } }) => ({
     id: item.id,
     candidate: item.professionalName,
     status: item.status,
     profile: item.deepProfile,
+    photoURL: item.professional?.photoURL || '',
+    seniority: item.professional?.seniority || '',
   }))
 }

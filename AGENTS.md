@@ -83,3 +83,48 @@ Luego, usa los siguientes métodos:
 - **Error**: `toast.error("Mensaje de error")`
 
 El componente `Toaster` ya está agregado en `App.tsx`, por lo que las notificaciones aparecen globalmente en la aplicación.
+
+## Documentación API GraphQL
+
+### Estructura de Datos
+
+Para evitar errores al consultar la API GraphQL, documentar aquí la estructura correcta de los tipos:
+
+#### Interview Type
+- `seniority` **NO** está directamente en `Interview`
+- `seniority` está anidado en `professional.seniority`
+- `photoURL` está anidado en `professional.photoURL`
+- `fullName` está anidado en `professional.fullName`
+
+**Query correcta para interviews list:**
+```graphql
+query ($take: Int!, $skip: Int!) {
+  items: interviews(take: $take, skip: $skip) {
+    id
+    professionalName
+    status
+    deepProfile
+    professional {
+      photoURL
+      seniority
+    }
+  }
+}
+```
+
+**Query correcta para interview detail:**
+```graphql
+query Interview($where: InterviewWhereUniqueInput!) {
+  interview(where: $where) {
+    status
+    professional {
+      fullName
+      photoURL
+      seniority
+    }
+    # ... resto de campos
+  }
+}
+```
+
+**Error común:** Intentar acceder a `seniority` directamente en `Interview` en lugar de `professional.seniority`.

@@ -9,13 +9,17 @@ import {
 } from '@/components/ui/table'
 import { Globe } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
+import { SeniorityBadge } from './SeniorityBadge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 interface InterviewListItem {
   id: string
   candidate: string
   status: string
   profile: string
+  photoURL: string
+  seniority: string
 }
 
 interface Props {
@@ -49,6 +53,7 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Candidate</TableHead>
+              <TableHead>Seniority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Profile</TableHead>
             </TableRow>
@@ -57,7 +62,13 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
             {Array.from({ length: 5 }).map((_, index) => (
               <TableRow key={index}>
                 <TableCell>
-                  <Skeleton className="h-4 w-32" />
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-16" />
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-6 w-20" />
@@ -81,6 +92,7 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
         <TableHeader>
           <TableRow>
             <TableHead>Candidate</TableHead>
+            <TableHead>Seniority</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Profile</TableHead>
           </TableRow>
@@ -93,7 +105,18 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
               className="cursor-pointer hover:bg-muted/50"
             >
               <TableCell className="font-medium max-w-xs truncate">
-                {r.candidate || '—'}
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={r.photoURL} alt={r.candidate} />
+                    <AvatarFallback>
+                      {r.candidate?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{r.candidate || '—'}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                <SeniorityBadge seniority={r.seniority} />
               </TableCell>
               <TableCell>
                 <StatusBadge status={r.status} />

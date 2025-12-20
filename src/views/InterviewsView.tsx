@@ -17,16 +17,23 @@ export function InterviewsView({
   const { data: interviews, isLoading: isInterviewsLoading, error: interviewsError } = useInterviews()
   const [uiSearch, setUiSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all')
+  const [seniorityFilter, setSeniorityFilter] = useState('')
 
   const counts = useMemo(() => {
     let pending = 0
     let completed = 0
+    const seniorities: Record<string, number> = {}
     interviews?.forEach((i) => {
       const s = (i.status || '').toLowerCase()
       if (s.includes('pending')) pending += 1
       else if (s.includes('complete') || s.includes('done')) completed += 1
+
+      const seniority = i.seniority || ''
+      if (seniority) {
+        seniorities[seniority] = (seniorities[seniority] || 0) + 1
+      }
     })
-    return { pending, completed }
+    return { pending, completed, seniorities }
   }, [interviews])
 
   const filtered = useMemo(() => {
@@ -37,9 +44,14 @@ export function InterviewsView({
       if (statusFilter === 'completed') return s.includes('complete') || s.includes('done')
       return true
     }) || []
-    if (!term) return statusFiltered
-    return statusFiltered.filter((i) => (i.candidate || '').toLowerCase().includes(term))
-  }, [uiSearch, statusFilter, interviews])
+
+    const seniorityFiltered = seniorityFilter
+      ? statusFiltered.filter((i) => i.seniority === seniorityFilter)
+      : statusFiltered
+
+    if (!term) return seniorityFiltered
+    return seniorityFiltered.filter((i) => (i.candidate || '').toLowerCase().includes(term))
+  }, [uiSearch, statusFilter, seniorityFilter, interviews])
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,8 +61,10 @@ export function InterviewsView({
         userLabel={userLabel}
         onOpenLogin={onLoginClick}
         statusFilter={statusFilter}
+        seniorityFilter={seniorityFilter}
         counts={counts}
         onChangeStatus={setStatusFilter}
+        onChangeSeniority={setSeniorityFilter}
       />
       <div className="max-w-5xl mx-auto px-4 py-6">
         <InterviewList

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 
 type Props = {
   searchValue: string
@@ -7,8 +8,10 @@ type Props = {
   userLabel: string
   onOpenLogin: () => void
   statusFilter: 'all' | 'pending' | 'completed'
-  counts: { pending: number; completed: number }
+  seniorityFilter: string
+  counts: { pending: number; completed: number; seniorities: Record<string, number> }
   onChangeStatus: (value: 'all' | 'pending' | 'completed') => void
+  onChangeSeniority: (value: string) => void
 }
 
 export function TopNav(props: Props) {
@@ -29,16 +32,31 @@ export function TopNav(props: Props) {
           <label htmlFor="navStatus" className="sr-only">
             Estado
           </label>
-          <select
+          <NativeSelect
             id="navStatus"
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             value={props.statusFilter}
             onChange={(e) => props.onChangeStatus(e.target.value as Props['statusFilter'])}
           >
-            <option value="all">Todos ({props.counts.pending + props.counts.completed})</option>
-            <option value="pending">Pending ({props.counts.pending})</option>
-            <option value="completed">Completed ({props.counts.completed})</option>
-          </select>
+            <NativeSelectOption value="all">Todos ({props.counts.pending + props.counts.completed})</NativeSelectOption>
+            <NativeSelectOption value="pending">Pending ({props.counts.pending})</NativeSelectOption>
+            <NativeSelectOption value="completed">Completed ({props.counts.completed})</NativeSelectOption>
+          </NativeSelect>
+
+          <label htmlFor="navSeniority" className="sr-only">
+            Seniority
+          </label>
+          <NativeSelect
+            id="navSeniority"
+            value={props.seniorityFilter}
+            onChange={(e) => props.onChangeSeniority(e.target.value)}
+          >
+            <NativeSelectOption value="">Todas las seniorities</NativeSelectOption>
+            {Object.entries(props.counts.seniorities).map(([seniority, count]) => (
+              <NativeSelectOption key={seniority} value={seniority}>
+                {seniority.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} ({count})
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
         </div>
 
         <div className="flex items-center gap-3">

@@ -27,7 +27,6 @@ type InterviewData = {
   photoURL: string
   seniority: string
   status: string
-  statusLabel: string
   dimensions: Dimension[]
   stack: Stack[]
 }
@@ -40,7 +39,6 @@ function processInterviewData(rawData: { data: InterviewDetailData | undefined }
     photoURL: rawData.data.interview.professional?.photoURL as string || '',
     seniority: rawData.data.interview.professional?.seniority as string || '',
     status: rawData.data.interview.status as string || '',
-    statusLabel: (rawData.data.interview.status as string || '') === 'completed' ? 'Completada' : (rawData.data.interview.status as string || '') === 'pending' ? 'Pendiente' : (rawData.data.interview.status as string || '') || '—',
     dimensions: (rawData.data.interview.dimensionEvaluations || [])
       .filter(evaluation => evaluation.conclusion)
       .map(evaluation => {

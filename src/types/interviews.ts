@@ -3,6 +3,8 @@ export type InterviewListItem = {
   candidate: string
   status: string
   profile: string
+  photoURL: string
+  seniority: string
 }
 
 export type InterviewListResult = InterviewListItem[]
