@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import type { ReactElement } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { EvaluationsList } from '@/components/EvaluationsList'
@@ -10,7 +12,32 @@ import { toast } from 'sonner'
 import { SeniorityBadge } from '@/components/SeniorityBadge'
 import systemPromptGuide from '../../prompts/system-prompt-guide.md?raw'
 import { Braces } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { ApiInstructions } from '@/components/ApiInstructions'
 
+
+// Type declaration for Chrome's experimental AI API
+declare global {
+  const LanguageModel: {
+    availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
+    create(options?: {
+      temperature?: number
+      topK?: number
+      signal?: AbortSignal
+      monitor?: (m: { addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void }) => void
+      initialPrompts?: Array<{
+        role: 'system' | 'user' | 'assistant'
+        content: string
+      }>
+    }): Promise<{
+      prompt(text: string | Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>, options?: { responseConstraint?: unknown }): Promise<string>
+      append(messages: Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>): Promise<void>
+      destroy(): void
+    }>
+    params(): Promise<{ defaultTopK: number; maxTopK: number; defaultTemperature: number; maxTemperature: number }>
+  }
+}
 
 type DimensionItem = {
   label: string
@@ -97,6 +124,9 @@ function Header({
   dimensions,
   stack,
 }: HeaderProps) {
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiResult, setAiResult] = useState<string | ReactElement>('')
   const handleGenerate = () => {
     const prompt = generateSystemPrompt(interviewName, dimensions, stack)
     navigator.clipboard.writeText(prompt).then(() => {
@@ -104,6 +134,50 @@ function Header({
     }).catch(() => {
       toast.error('Error al copiar')
     })
+  }
+
+  const handleGenerateAI = async () => {
+    setDialogOpen(true)
+    setAiLoading(true)
+    setAiResult('')
+
+    if (!LanguageModel) {
+      setAiResult(<ApiInstructions />)
+      setAiLoading(false)
+      return
+    }
+
+    const availability = await LanguageModel.availability({ languages: ['es'] })
+    if (availability === 'no') {
+      setAiResult('La API de Prompt no es compatible con este dispositivo. Verifica los requisitos de hardware mencionados arriba.')
+      setAiLoading(false)
+      return
+    }
+
+    try {
+      let session
+      if (availability === 'readily') {
+        session = await LanguageModel.create()
+      } else {
+        setAiResult('Descargando el modelo de IA... Esto puede tardar.')
+        session = await LanguageModel.create({
+          monitor(m) {
+            m.addEventListener('downloadprogress', (e) => {
+              setAiResult(`Descargando el modelo... ${Math.round(e.loaded * 100)}%`)
+            })
+          }
+        })
+        setAiResult('Modelo descargado. Generando conclusiones...')
+      }
+
+      const prompt = generateSystemPrompt(interviewName, dimensions, stack)
+      const result = await session.prompt(prompt)
+      setAiResult(result)
+    } catch (error) {
+      setAiResult('Error al generar conclusiones: ' + (error as Error).message)
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   return (
@@ -133,6 +207,38 @@ function Header({
             <Braces className="h-4 w-4 mr-2" />
             Prompt
           </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" onClick={handleGenerateAI}>
+                <Braces className="h-4 w-4 mr-2" />
+                IA
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generación con IA</DialogTitle>
+              </DialogHeader>
+              {aiLoading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="animate-spin" />
+                  <p>Generando conclusiones...</p>
+                </div>
+              ) : (
+                <div>
+                  {typeof aiResult === 'string' ? (
+                    <pre className="whitespace-pre-wrap text-sm">{aiResult}</pre>
+                  ) : (
+                    aiResult
+                  )}
+                  {typeof aiResult === 'string' && aiResult && (
+                    <Button onClick={() => navigator.clipboard.writeText(aiResult).then(() => toast.success('Copiado al portapapeles'))} variant="outline" size="sm" className="mt-2">
+                      Copiar resultado
+                    </Button>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
           <Button
             variant="ghost"
             size="icon"
