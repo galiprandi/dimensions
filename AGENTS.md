@@ -128,3 +128,14 @@ query Interview($where: InterviewWhereUniqueInput!) {
 ```
 
 **Error común:** Intentar acceder a `seniority` directamente en `Interview` en lugar de `professional.seniority`.
+
+### Despliegue y CORS (GitHub Pages + Worker)
+
+- Vite usa `base: '/dimensions/'` y `BrowserRouter` con `basename={import.meta.env.BASE_URL}` para rutas correctas en Pages.
+- `VITE_API_URL` debe apuntar al proxy (Cloudflare Worker). El workflow de Pages fija `VITE_API_URL=https://interviews.galiprandi.workers.dev`.
+- `api.ts` normaliza `VITE_API_URL` (corrige “ttps://”, fuerza `https://` y añade `/api/graphql` si falta).
+- Cloudflare Worker debe:
+  - Permitir orígenes `https://galiprandi.github.io` y `http://localhost:5173`.
+  - Reenviar la cookie de sesión y conservar `set-cookie`.
+  - Reescribir `set-cookie` a `SameSite=None; Secure` para que el navegador envíe la sesión en `github.io`.
+- Si `VITE_API_URL` está mal escrita o el Worker no reenvía cookies/SameSite, las queries regresan vacías (`items: []`).
