@@ -7,15 +7,15 @@ import { loginBackofficeUser } from './lib/auth'
 import { useInterviews } from './hooks/useInterviews'
 import { InterviewsView } from './views/InterviewsView'
 import { InterviewDetail } from './views/InterviewDetail'
+import { useUser } from './hooks/useUser'
 
 function App() {
-  const [loginIdentity, setLoginIdentity] = useState('')
+  const [loginIdentity, setLoginIdentity] = useState(localStorage.getItem('last-login-email') || '')
   const [loginSecret, setLoginSecret] = useState('')
   const [loginStatus, setLoginStatus] = useState('')
   const [isLoginLoading, setIsLoginLoading] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [loggedInUserLabel, setLoggedInUserLabel] = useState('')
-  const [loggedInUserAvatar, setLoggedInUserAvatar] = useState('')
+  const { user, saveUser, clearUser } = useUser()
 
   const { refetch: refetchInterviews } = useInterviews()
 
@@ -32,9 +32,12 @@ function App() {
   }
 
   useEffect(() => {
-    if (!loggedInUserLabel) return
+    if (!user?.label) {
+      setIsLoginOpen(true)
+      return
+    }
     void refetchInterviews()
-  }, [loggedInUserLabel, refetchInterviews])
+  }, [user, refetchInterviews])
 
   const handleLogin = async () => {
     const identity = loginIdentity.trim()
@@ -46,8 +49,10 @@ function App() {
       setLoginStatus(result.ok ? 'Login OK (cookie seteada).' : `Login error: ${result.message}`)
       if (result.ok) {
         setLoginSecret('')
-        setLoggedInUserLabel(getDisplayName(identity))
-        setLoggedInUserAvatar(getAvatarSeed(identity))
+        const label = getDisplayName(identity)
+        const avatar = getAvatarSeed(identity)
+        saveUser({ label, avatar, identity })
+        localStorage.setItem('last-login-email', identity)
         setIsLoginOpen(false)
         await refetchInterviews()
       }
@@ -60,8 +65,7 @@ function App() {
   }
 
   const handleLogout = () => {
-    setLoggedInUserLabel('')
-    setLoggedInUserAvatar('')
+    clearUser()
     setLoginStatus('Sesión cerrada.')
     setIsLoginOpen(false)
   }
@@ -87,8 +91,9 @@ function App() {
           path="/"
           element={
             <InterviewsRoute
-              userLabel={loggedInUserLabel}
-              userAvatar={loggedInUserAvatar}
+              userLabel={user?.label || ''}
+              userAvatar={user?.avatar || ''}
+              userPhoto={user?.photoURL}
               onLoginClick={() => setIsLoginOpen(true)}
               onLogoutClick={handleLogout}
             />
@@ -98,8 +103,9 @@ function App() {
           path="/interviews"
           element={
             <InterviewsRoute
-              userLabel={loggedInUserLabel}
-              userAvatar={loggedInUserAvatar}
+              userLabel={user?.label || ''}
+              userAvatar={user?.avatar || ''}
+              userPhoto={user?.photoURL}
               onLoginClick={() => setIsLoginOpen(true)}
               onLogoutClick={handleLogout}
             />
@@ -122,6 +128,7 @@ export default App
 function InterviewsRoute(props: {
   userLabel: string
   userAvatar: string
+  userPhoto?: string
   onLoginClick: () => void
   onLogoutClick: () => void
 }) {
@@ -130,6 +137,7 @@ function InterviewsRoute(props: {
     <InterviewsView
       userLabel={props.userLabel}
       userAvatar={props.userAvatar}
+      userPhoto={props.userPhoto}
       onLoginClick={props.onLoginClick}
       onLogout={props.onLogoutClick}
       onSelect={(id) => navigate(`/interviews/${id}`)}

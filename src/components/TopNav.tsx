@@ -9,6 +9,7 @@ type Props = {
   onChangeSearch: (value: string) => void
   userLabel: string
   userAvatar: string
+  userPhoto?: string
   onOpenLogin: () => void
   onLogout: () => void
   statusFilter: 'all' | 'pending' | 'completed'
@@ -68,7 +69,10 @@ export function TopNav(props: Props) {
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage
-                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(props.userAvatar || props.userLabel)}`}
+                  src={
+                    props.userPhoto ||
+                    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(props.userAvatar || props.userLabel)}`
+                  }
                   alt={props.userLabel}
                 />
                 <AvatarFallback>{props.userLabel.slice(0, 2).toUpperCase()}</AvatarFallback>

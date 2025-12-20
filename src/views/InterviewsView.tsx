@@ -6,6 +6,7 @@ import { useInterviews } from '@/hooks/useInterviews'
 interface Props {
   userLabel: string
   userAvatar: string
+  userPhoto?: string
   onLoginClick: () => void
   onLogout: () => void
   onSelect: (id: string) => void
@@ -14,6 +15,7 @@ interface Props {
 export function InterviewsView({
   userLabel,
   userAvatar,
+  userPhoto,
   onLoginClick,
   onLogout,
   onSelect,
@@ -64,6 +66,7 @@ export function InterviewsView({
         onChangeSearch={setUiSearch}
         userLabel={userLabel}
         userAvatar={userAvatar}
+        userPhoto={userPhoto}
         onOpenLogin={onLoginClick}
         onLogout={onLogout}
         statusFilter={statusFilter}

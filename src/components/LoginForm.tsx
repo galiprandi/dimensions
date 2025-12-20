@@ -25,6 +25,9 @@ export function LoginForm(props: Props) {
         </label>
         <Input
           id="identity"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
           placeholder="email@dominio.com"
           value={identity}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeIdentity(e.target.value)}
@@ -38,6 +41,8 @@ export function LoginForm(props: Props) {
         <Input
           id="secret"
           type="password"
+          name="current-password"
+          autoComplete="current-password"
           placeholder="••••••••"
           value={secret}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeSecret(e.target.value)}
