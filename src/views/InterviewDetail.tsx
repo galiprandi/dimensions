@@ -13,6 +13,7 @@ import { SeniorityBadge } from '@/components/SeniorityBadge'
 import systemPromptGuide from '../../prompts/system-prompt-guide.md?raw'
 import { Braces } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
+import { X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ApiInstructions } from '@/components/ApiInstructions'
 
@@ -29,6 +30,10 @@ declare global {
       initialPrompts?: Array<{
         role: 'system' | 'user' | 'assistant'
         content: string
+      }>
+      expectedOutputs?: Array<{
+        type: 'text'
+        languages: string[]
       }>
     }): Promise<{
       prompt(text: string | Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>, options?: { responseConstraint?: unknown }): Promise<string>
@@ -141,6 +146,8 @@ function Header({
     setAiLoading(true)
     setAiResult('')
 
+    console.log('Starting AI generation')
+
     if (!LanguageModel) {
       setAiResult(<ApiInstructions />)
       setAiLoading(false)
@@ -148,6 +155,7 @@ function Header({
     }
 
     const availability = await LanguageModel.availability({ languages: ['es'] })
+    console.log('Availability:', availability)
     if (availability === 'no') {
       setAiResult('La API de Prompt no es compatible con este dispositivo. Verifica los requisitos de hardware mencionados arriba.')
       setAiLoading(false)
@@ -157,9 +165,12 @@ function Header({
     try {
       let session
       if (availability === 'readily') {
+        console.log('Creating session readily')
         session = await LanguageModel.create()
+        console.log('Session created readily')
       } else {
         setAiResult('Descargando el modelo de IA... Esto puede tardar.')
+        console.log('Creating session with download')
         session = await LanguageModel.create({
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
@@ -167,13 +178,18 @@ function Header({
             })
           }
         })
+        console.log('Session created with download')
         setAiResult('Modelo descargado. Generando conclusiones...')
       }
 
       const prompt = generateSystemPrompt(interviewName, dimensions, stack)
+      console.log('Prompt generated, length:', prompt.length)
+      console.log('Prompting...')
       const result = await session.prompt(prompt)
+      console.log('Result received, length:', result.length)
       setAiResult(result)
     } catch (error) {
+      console.log('Error in AI generation:', error)
       setAiResult('Error al generar conclusiones: ' + (error as Error).message)
     } finally {
       setAiLoading(false)
@@ -214,10 +230,13 @@ function Header({
                 IA
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto relative">
               <DialogHeader>
                 <DialogTitle>Generación con IA</DialogTitle>
               </DialogHeader>
+              <Button variant="ghost" size="icon" className="absolute top-4 right-4" onClick={() => setDialogOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
               {aiLoading ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="animate-spin" />
