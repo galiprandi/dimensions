@@ -1,12 +1,16 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import { LogOut } from "lucide-react"
 
 type Props = {
   searchValue: string
   onChangeSearch: (value: string) => void
   userLabel: string
+  userAvatar: string
   onOpenLogin: () => void
+  onLogout: () => void
   statusFilter: 'all' | 'pending' | 'completed'
   seniorityFilter: string
   counts: { pending: number; completed: number; seniorities: Record<string, number> }
@@ -61,8 +65,24 @@ export function TopNav(props: Props) {
 
         <div className="flex items-center gap-3">
           {props.userLabel ? (
-            <div className="text-sm bg-muted px-2 py-1 rounded-md border">
-              {props.userLabel}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage
+                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(props.userAvatar || props.userLabel)}`}
+                  alt={props.userLabel}
+                />
+                <AvatarFallback>{props.userLabel.slice(0, 2).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium text-foreground">{props.userLabel}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Cerrar sesión"
+                className="text-muted-foreground hover:text-foreground"
+                onClick={props.onLogout}
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           ) : (
             <Button variant="outline" onClick={props.onOpenLogin} size="sm">

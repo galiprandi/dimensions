@@ -5,13 +5,17 @@ import { useInterviews } from '@/hooks/useInterviews'
 
 interface Props {
   userLabel: string
+  userAvatar: string
   onLoginClick: () => void
+  onLogout: () => void
   onSelect: (id: string) => void
 }
 
 export function InterviewsView({
   userLabel,
+  userAvatar,
   onLoginClick,
+  onLogout,
   onSelect,
 }: Props) {
   const { data: interviews, isLoading: isInterviewsLoading, error: interviewsError } = useInterviews()
@@ -59,7 +63,9 @@ export function InterviewsView({
         searchValue={uiSearch}
         onChangeSearch={setUiSearch}
         userLabel={userLabel}
+        userAvatar={userAvatar}
         onOpenLogin={onLoginClick}
+        onLogout={onLogout}
         statusFilter={statusFilter}
         seniorityFilter={seniorityFilter}
         counts={counts}

@@ -15,12 +15,19 @@ function App() {
   const [isLoginLoading, setIsLoginLoading] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [loggedInUserLabel, setLoggedInUserLabel] = useState('')
+  const [loggedInUserAvatar, setLoggedInUserAvatar] = useState('')
 
   const { refetch: refetchInterviews } = useInterviews()
 
   const getDisplayName = (identity: string) => {
     const trimmed = identity.trim()
     if (trimmed.includes('@')) return trimmed.split('@')[0] || trimmed
+    return trimmed
+  }
+
+  const getAvatarSeed = (identity: string) => {
+    const trimmed = identity.trim()
+    if (!trimmed) return ''
     return trimmed
   }
 
@@ -40,6 +47,7 @@ function App() {
       if (result.ok) {
         setLoginSecret('')
         setLoggedInUserLabel(getDisplayName(identity))
+        setLoggedInUserAvatar(getAvatarSeed(identity))
         setIsLoginOpen(false)
         await refetchInterviews()
       }
@@ -49,6 +57,13 @@ function App() {
     } finally {
       setIsLoginLoading(false)
     }
+  }
+
+  const handleLogout = () => {
+    setLoggedInUserLabel('')
+    setLoggedInUserAvatar('')
+    setLoginStatus('Sesión cerrada.')
+    setIsLoginOpen(false)
   }
 
   return (
@@ -73,7 +88,9 @@ function App() {
           element={
             <InterviewsRoute
               userLabel={loggedInUserLabel}
+              userAvatar={loggedInUserAvatar}
               onLoginClick={() => setIsLoginOpen(true)}
+              onLogoutClick={handleLogout}
             />
           }
         />
@@ -82,7 +99,9 @@ function App() {
           element={
             <InterviewsRoute
               userLabel={loggedInUserLabel}
+              userAvatar={loggedInUserAvatar}
               onLoginClick={() => setIsLoginOpen(true)}
+              onLogoutClick={handleLogout}
             />
           }
         />
@@ -102,13 +121,17 @@ export default App
 
 function InterviewsRoute(props: {
   userLabel: string
+  userAvatar: string
   onLoginClick: () => void
+  onLogoutClick: () => void
 }) {
   const navigate = useNavigate()
   return (
     <InterviewsView
       userLabel={props.userLabel}
+      userAvatar={props.userAvatar}
       onLoginClick={props.onLoginClick}
+      onLogout={props.onLogoutClick}
       onSelect={(id) => navigate(`/interviews/${id}`)}
     />
   )
