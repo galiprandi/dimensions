@@ -1,9 +1,9 @@
 import axios from 'axios'
 
-const FALLBACK_PROD_API = 'ttps://interviews.galiprandi.workers.dev'
+const FALLBACK_PROD_API = 'https://backoffice.rooftop.dev/api/graphql'
 
 function detectApiUrl() {
-  const envUrl = import.meta.env.VITE_API_URL
+  const envUrl = normalizeEnvUrl(import.meta.env.VITE_API_URL)
   if (envUrl) return envUrl
 
   if (typeof window !== 'undefined') {
@@ -17,6 +17,27 @@ function detectApiUrl() {
 
   // Local dev (proxied in Vite)
   return '/api/graphql'
+}
+
+function normalizeEnvUrl(raw?: string) {
+  if (!raw) return ''
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+
+  let candidate = trimmed
+  if (candidate.startsWith('ttps://')) candidate = 'h' + candidate // fix missing leading h
+  if (candidate.startsWith('//')) candidate = 'https:' + candidate
+  if (!candidate.startsWith('http')) candidate = 'https://' + candidate
+
+  try {
+    // Validate URL; if invalid, fall back later
+     
+    new URL(candidate)
+    return candidate
+  } catch {
+    console.warn('[api] Invalid VITE_API_URL, falling back to defaults:', raw)
+    return ''
+  }
 }
 
 export const API_URL = detectApiUrl()
