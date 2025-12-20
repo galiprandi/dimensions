@@ -1,6 +1,7 @@
 export type GraphQLInterviewResponse = {
   data?: {
     interview?: {
+      status?: unknown
       professional?: {
         fullName?: unknown
       }
@@ -38,6 +39,7 @@ export type GraphQLInterviewResponse = {
     dimensions?: Array<{
       id?: unknown
       name?: unknown
+      technologyFocus?: unknown
       subdimensions?: Array<{
         id?: unknown
         name?: unknown

@@ -66,12 +66,7 @@ async function fetchDimensionById(id: string): Promise<DimensionProps | null> {
   const topics: string[] = []
   if (Array.isArray(dimension.subdimensions)) {
     for (const sub of dimension.subdimensions) {
-      const desc =
-        typeof sub?.questions === 'string' && sub.questions.trim()
-          ? sub.questions.trim()
-          : typeof sub?.name === 'string'
-            ? sub.name.trim()
-            : ''
+      const desc = typeof sub?.name === 'string' ? sub.name.trim() : ''
       if (desc) topics.push(desc)
     }
   }

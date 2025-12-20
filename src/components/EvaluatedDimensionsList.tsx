@@ -1,36 +1,37 @@
-import { useRef, useState } from 'react'
 import { EvaluatedDimensionItem } from './EvaluatedDimensionItem'
 
 type EvaluatedDimensionsListProps = {
-  items: Array<{ id: string; dimensionEvaluationId: string; name: string; conclusion: string }>
-  onUpdate?: (id: string, conclusion: string) => void
+  dimensions: {
+    id: string
+    conclusion: string
+    dimensionId: string
+    dimensionName: string
+    area: string
+    label: string
+    topics: string[]
+  }[]
+  stacks: {
+    id: string
+    conclusion: string
+    stackId: string
+    stackName: string
+    label: string
+  }[]
 }
 
-export function EvaluatedDimensionsList({ items, onUpdate }: EvaluatedDimensionsListProps) {
-  const [toast, setToast] = useState<{ id: number; message: string } | null>(null)
-  const toastIdRef = useRef(0)
-
-  const showToast = (message: string) => {
-    toastIdRef.current += 1
-    const id = toastIdRef.current
-    setToast({ id, message })
-    setTimeout(() => {
-      setToast((current) => (current?.id === id ? null : current))
-    }, 2000)
-  }
+export function EvaluatedDimensionsList({ dimensions, stacks }: EvaluatedDimensionsListProps) {
+  const allItems = [
+    ...dimensions.map(d => ({ id: d.id, label: d.label, conclusion: d.conclusion, topics: d.topics })),
+    ...stacks.map(s => ({ id: s.id, label: s.label, conclusion: s.conclusion, topics: [] }))
+  ]
 
   return (
     <div className="relative space-y-4">
       <div className="space-y-4">
-        {items.map((d) => (
-          <EvaluatedDimensionItem key={d.id} item={d} onUpdate={onUpdate} showToast={showToast} />
+        {allItems?.map((item) => (
+          <EvaluatedDimensionItem key={item.id} item={item} />
         ))}
       </div>
-      {toast && (
-        <div className="mt-4 p-2 bg-background border rounded shadow-sm text-sm text-foreground">
-          {toast.message}
-        </div>
-      )}
     </div>
   )
 }

@@ -1,34 +1,35 @@
 import { useState } from 'react'
-import { useDimensionById } from '@/hooks/useDimensionById'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
+import { TopicsDialog } from './TopicsDialog'
 
 type EvaluatedDimensionItemProps = {
-  item: { id: string; dimensionEvaluationId: string; name: string; conclusion: string }
-  onUpdate?: (id: string, conclusion: string) => void
-  showToast: (message: string) => void
+  item: {
+    id: string
+    label: string
+    conclusion: string
+    topics: string[]
+  }
 }
 
-export function EvaluatedDimensionItem({ item, onUpdate, showToast }: EvaluatedDimensionItemProps) {
-  const { data, isLoading } = useDimensionById(item.id)
+export function EvaluatedDimensionItem({ item }: EvaluatedDimensionItemProps) {
 
   const [isEditing, setIsEditing] = useState(false)
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)
   const [copied, setCopied] = useState(false)
 
-  const displayName = isLoading ? item.name : data?.title || item.name
 
-  const capitalizedDisplayName = displayName.charAt(0).toUpperCase() + displayName.slice(1)
 
   const queryClient = useQueryClient()
 
   const mutation = useMutation({
     mutationFn: async (variables: { id: string; conclusion: string }) => {
+      const trimmedConclusion = variables.conclusion.trim()
       const res = await fetch('/api/graphql', {
         method: 'POST',
         headers: {
@@ -38,7 +39,7 @@ export function EvaluatedDimensionItem({ item, onUpdate, showToast }: EvaluatedD
         credentials: 'include',
         body: JSON.stringify({
           operationName: 'UpdateDimensionEvaluation',
-          variables: { where: { id: variables.id }, data: { conclusion: variables.conclusion } },
+          variables: { where: { id: variables.id }, data: { conclusion: trimmedConclusion } },
           query: `mutation UpdateDimensionEvaluation($where: DimensionEvaluationWhereUniqueInput!, $data: DimensionEvaluationUpdateInput!) {
             updateDimensionEvaluation(where: $where, data: $data) {
               conclusion
@@ -52,13 +53,11 @@ export function EvaluatedDimensionItem({ item, onUpdate, showToast }: EvaluatedD
       if (json.errors) throw new Error(json.errors[0].message)
       return json
     },
-    onMutate: (variables) => {
-      // Optimistic update
-      onUpdate?.(variables.id, variables.conclusion)
-      showToast('Guardado')
+    onMutate: () => {
+      toast.success('Guardado')
     },
     onError: (error) => {
-      showToast(error.message || 'Error al guardar')
+      toast.error(error.message || 'Error al guardar')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['interviewDetail'] })
@@ -66,8 +65,8 @@ export function EvaluatedDimensionItem({ item, onUpdate, showToast }: EvaluatedD
   })
 
   const handleSave = () => {
-    if (localConclusion !== item.conclusion) {
-      mutation.mutate({ id: item.dimensionEvaluationId, conclusion: localConclusion })
+    if (localConclusion !== '') {
+      mutation.mutate({ id: item.id, conclusion: localConclusion })
     }
   }
 
@@ -89,23 +88,12 @@ export function EvaluatedDimensionItem({ item, onUpdate, showToast }: EvaluatedD
     }
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-6 w-16" />
-        </div>
-        <Skeleton className="h-24 w-full" />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-4">
-        <h3 className="font-semibold text-lg text-foreground">{data?.label || capitalizedDisplayName}</h3>
+        <h3 className="font-semibold text-lg text-foreground">{item.label}</h3>
         <div className="flex items-center gap-2">
+          <TopicsDialog topics={item.topics} title="Tópicos" />
           <Button
             variant="ghost"
             size="icon"
@@ -132,8 +120,8 @@ export function EvaluatedDimensionItem({ item, onUpdate, showToast }: EvaluatedD
             className="min-h-[120px] resize-none border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
           />
         ) : (
-          <div className="text-muted-foreground leading-relaxed p-3 whitespace-pre-wrap">
-            {item.conclusion || <span className="text-muted-foreground/50 italic">Sin conclusión</span>}
+          <div className="text-muted-foreground text-sm leading-relaxed p-3 whitespace-pre-wrap">
+            {localConclusion || <span className="text-muted-foreground/50 italic">Sin conclusión</span>}
           </div>
         )}
       </div>

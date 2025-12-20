@@ -68,7 +68,7 @@ function App() {
         />
       </Modal>
 
-      <Toaster />
+      <Toaster position="top-right" />
 
       <Routes>
         <Route
