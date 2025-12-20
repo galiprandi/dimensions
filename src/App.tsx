@@ -69,6 +69,15 @@ function App() {
 
       <Routes>
         <Route
+          path="/"
+          element={
+            <InterviewsRoute
+              userLabel={loggedInUserLabel}
+              onLoginClick={() => setIsLoginOpen(true)}
+            />
+          }
+        />
+        <Route
           path="/interviews"
           element={
             <InterviewsRoute
@@ -83,7 +92,7 @@ function App() {
             <InterviewDetail />
           }
         />
-        <Route path="*" element={<Navigate to="/interviews" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
