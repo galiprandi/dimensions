@@ -53,5 +53,33 @@ Luego de redactar las conclusiones por dimención, se redacta una **conclusión 
 La conclusión final debe:
 
 - Sintetizar patrones (fortalezas, debilidades, tradeoffs)
-- Indicar nivel de adecuación al rol (Frontend/Full Stack) según la evidencia
+- Indicar nivel de adecuación al rol (Frontend/ Full Stack) según la evidencia
 - Ser consistente con las conclusiones por dimención
+
+## Reglas de Desarrollo
+
+### Componentes
+
+Siempre quiero componentes reutilizables, usando shadcn para la UI, y separados en archivos individuales para mantener la modularidad y facilidad de mantenimiento.
+
+### Hooks
+
+Hooks personalizados también en archivos separados.
+
+### Notificaciones con Toast
+
+Para mostrar notificaciones tipo toast (información, éxito, error), usa la librería sonner que está configurada en la app.
+
+Importa en el componente donde lo necesites:
+
+```typescript
+import { toast } from "sonner"
+```
+
+Luego, usa los siguientes métodos:
+
+- **Información**: `toast("Mensaje de información")`
+- **Éxito**: `toast.success("Mensaje de éxito")`
+- **Error**: `toast.error("Mensaje de error")`
+
+El componente `Toaster` ya está agregado en `App.tsx`, por lo que las notificaciones aparecen globalmente en la aplicación.

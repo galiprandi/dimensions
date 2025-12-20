@@ -28,6 +28,7 @@ export type GraphQLInterviewResponse = {
         }
       }>
       dimensionEvaluations?: Array<{
+        id?: unknown
         conclusion?: unknown
         dimension?: {
           id?: unknown
