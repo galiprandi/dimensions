@@ -32,8 +32,12 @@ function normalizeEnvUrl(raw?: string) {
   try {
     // Validate URL; if invalid, fall back later
      
-    new URL(candidate)
-    return candidate
+    const url = new URL(candidate)
+    // Ensure path ends with /api/graphql
+    if (!url.pathname || url.pathname === '/' || url.pathname === '') {
+      url.pathname = '/api/graphql'
+    }
+    return url.toString()
   } catch {
     console.warn('[api] Invalid VITE_API_URL, falling back to defaults:', raw)
     return ''

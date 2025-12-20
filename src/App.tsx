@@ -52,7 +52,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Modal title="Login" open={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
         <LoginForm
           identity={loginIdentity}
