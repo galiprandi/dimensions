@@ -70,7 +70,7 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
       toast.error(error.message || 'Error al guardar')
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interview', 'data'] })
+      queryClient.invalidateQueries({ queryKey: ['interview'] })
     },
   })
 

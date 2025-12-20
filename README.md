@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# Dimensions – Candidate Evaluation UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Dimensions is a React + TypeScript single-page application for managing interview evaluations. It integrates with a GraphQL back office, surfaces interview lists/details, and helps create structured conclusions per evaluation dimension.
 
-Currently, two official plugins are available:
+## Tech stack
+- Vite + React 19 + TypeScript
+- React Router for navigation
+- @tanstack/react-query for data fetching and caching
+- shadcn/ui + Radix primitives for UI
+- sonner for toast notifications
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Getting started
+1. Install dependencies  
+   ```bash
+   npm install
+   ```
+2. Run the dev server  
+   ```bash
+   npm run dev
+   ```
+3. Open the app at the URL shown in the terminal (Vite defaults to http://localhost:5173).
 
-## React Compiler
+## Available scripts
+- `npm run dev` – Start the development server.
+- `npm run build` – Type-check and build the production bundle to `dist/`.
+- `npm run preview` – Serve the built app locally.
+- `npm run lint` – Run ESLint.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Deployment (GitHub Pages)
+This project is configured to deploy to GitHub Pages under the repository path `/dimensions/`.
 
-## Expanding the ESLint configuration
+### How it works
+- `vite.config.ts` sets `base: '/dimensions/'` to ensure assets resolve correctly on Pages.
+- A GitHub Actions workflow (`.github/workflows/deploy.yml`) builds the site and publishes `dist/` to Pages.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Manual trigger or on push to `main`
+Deploys run automatically on pushes to `main` or via **Run workflow** in the GitHub Actions UI.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Local preview of the production build
+```bash
+npm run build
+npm run preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Favicon and title
+The HTML entry (`index.html`) uses `Dimensions | Candidate Evaluations` as the title and a custom favicon at `public/favicon-dimensions.svg`.

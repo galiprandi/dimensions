@@ -30,7 +30,7 @@ export function useAi<TParsed>(options: UseAiOptions<TParsed>): UseAiResult<TPar
   }
 
   const query = useQuery<{ raw: string; parsed: TParsed }, Error>({
-    queryKey: ['ai-generate', id],
+    queryKey: ['AI', id],
     enabled: false,
     staleTime: Infinity,
     gcTime: Infinity,

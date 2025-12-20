@@ -89,7 +89,7 @@ function processInterviewData(rawData: { data: InterviewDetailData | undefined }
 
 export function useInterview(id?: string): { data: InterviewData | undefined; isLoading: boolean } {
   const query = useQuery<InterviewData | undefined, Error>({
-    queryKey: ['interview', 'data', id],
+    queryKey: ['interview', id],
     enabled: Boolean(id),
     queryFn: async () => {
       if (!id) throw new Error('No interview id provided')
