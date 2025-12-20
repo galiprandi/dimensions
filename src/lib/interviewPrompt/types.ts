@@ -22,6 +22,7 @@ export type GraphQLInterviewResponse = {
         }
       }>
       mainStackEvaluations?: Array<{
+        id?: unknown
         conclusion?: unknown
         experienceInYears?: unknown
         mainStack?: {

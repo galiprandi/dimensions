@@ -14,6 +14,8 @@ type EvaluatedDimensionItemProps = {
     label: string
     conclusion: string
     topics: string[]
+    stackId?: string
+    dimensionId?: string
   }
 }
 
@@ -30,18 +32,24 @@ export function EvaluatedDimensionItem({ item }: EvaluatedDimensionItemProps) {
   const mutation = useMutation({
     mutationFn: async (variables: { id: string; conclusion: string }) => {
       const trimmedConclusion = variables.conclusion.trim()
+      const isStack = Boolean(item.stackId)
+      const operationName = isStack ? 'UpdateMainStackEvaluation' : 'UpdateDimensionEvaluation'
+      const mutationName = isStack ? 'updateMainStackEvaluation' : 'updateDimensionEvaluation'
+      const inputType = isStack ? 'MainStackEvaluationWhereUniqueInput!' : 'DimensionEvaluationWhereUniqueInput!'
+      const updateInput = isStack ? 'MainStackEvaluationUpdateInput!' : 'DimensionEvaluationUpdateInput!'
       const res = await fetch('/api/graphql', {
         method: 'POST',
         headers: {
           accept: '*/*',
           'content-type': 'application/json',
+          'apollo-require-preflight': 'true',
         },
         credentials: 'include',
         body: JSON.stringify({
-          operationName: 'UpdateDimensionEvaluation',
+          operationName,
           variables: { where: { id: variables.id }, data: { conclusion: trimmedConclusion } },
-          query: `mutation UpdateDimensionEvaluation($where: DimensionEvaluationWhereUniqueInput!, $data: DimensionEvaluationUpdateInput!) {
-            updateDimensionEvaluation(where: $where, data: $data) {
+          query: `mutation ${operationName}($where: ${inputType}, $data: ${updateInput}) {
+            ${mutationName}(where: $where, data: $data) {
               conclusion
               __typename
             }

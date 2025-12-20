@@ -21,8 +21,8 @@ type EvaluatedDimensionsListProps = {
 
 export function EvaluatedDimensionsList({ dimensions, stacks }: EvaluatedDimensionsListProps) {
   const allItems = [
-    ...dimensions.map(d => ({ id: d.id, label: d.label, conclusion: d.conclusion, topics: d.topics })),
-    ...stacks.map(s => ({ id: s.id, label: s.label, conclusion: s.conclusion, topics: [] }))
+    ...dimensions.map(d => ({ id: d.id, label: d.label, conclusion: d.conclusion, topics: d.topics, dimensionId: d.dimensionId })),
+    ...stacks.map(s => ({ id: s.id, label: s.label, conclusion: s.conclusion, topics: [], stackId: s.stackId }))
   ]
 
   return (

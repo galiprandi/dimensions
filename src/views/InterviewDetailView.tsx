@@ -10,9 +10,9 @@ export function InterviewDetailView() {
   const navigate = useNavigate()
 
   const interviewData = useInterview(id)
-  const { candidate = '', status = '', statusLabel = '', dimensions = [], stack = [] } = interviewData || {}
+  const { candidate = '', statusLabel = '', dimensions = [], stack = [] } = interviewData || {}
 
-  console.log({ candidate, status, statusLabel, dimensions, stack })
+  console.log({ candidate, statusLabel, dimensions, stack })
   
   
   return (
