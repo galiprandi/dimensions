@@ -17,9 +17,10 @@ type EvaluationItemProps = {
     stackId?: string
     dimensionId?: string
   }
+  mode?: 'toggle' | 'editOnly'
 }
 
-export function EvaluationItem({ item }: EvaluationItemProps) {
+export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
 
   const [isEditing, setIsEditing] = useState(false)
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)
@@ -68,7 +69,7 @@ export function EvaluationItem({ item }: EvaluationItemProps) {
       toast.error(error.message || 'Error al guardar')
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interviewDetail'] })
+      queryClient.invalidateQueries({ queryKey: ['interview', 'data'] })
     },
   })
 
@@ -79,6 +80,7 @@ export function EvaluationItem({ item }: EvaluationItemProps) {
   }
 
   const handleToggle = (checked: boolean) => {
+    if (mode !== 'toggle') return
     setIsEditing(checked)
     if (!checked) {
       handleSave()
@@ -101,36 +103,61 @@ export function EvaluationItem({ item }: EvaluationItemProps) {
       <div className="flex items-center justify-between gap-4">
         <h3 className="font-semibold text-lg text-foreground">{item.label}</h3>
         <div className="flex items-center gap-2">
-          <TopicsDialog topics={item.topics} title="Tópicos" />
+          {mode !== 'editOnly' && item.topics?.length > 0 && (
+            <TopicsDialog topics={item.topics} title="Tópicos" />
+          )}
           <Button
             variant="ghost"
             size="icon"
             onClick={handleCopy}
-            disabled={!localConclusion || isEditing}
+            disabled={!localConclusion}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
-          <Label htmlFor={`edit-${item.id}`} className="text-sm text-muted-foreground cursor-pointer">
-            Editar
-          </Label>
-          <Switch id={`edit-${item.id}`} checked={isEditing} onCheckedChange={handleToggle} />
+          {mode === 'toggle' ? (
+            <>
+              <Label htmlFor={`edit-${item.id}`} className="text-sm text-muted-foreground cursor-pointer">
+                Editar
+              </Label>
+              <Switch id={`edit-${item.id}`} checked={isEditing} onCheckedChange={handleToggle} />
+            </>
+          ) : (
+            <Button
+              size="icon"
+              onClick={handleSave}
+              disabled={mutation.isPending || localConclusion.trim().length === 0}
+              aria-label="Guardar conclusión"
+              className="h-9 w-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="min-h-[100px]">
-        {isEditing ? (
+        {mode === 'toggle' ? (
+          isEditing ? (
+            <Textarea
+              value={localConclusion}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLocalConclusion(e.target.value)}
+              onBlur={() => { handleSave(); setIsEditing(false) }}
+              placeholder="Escribe la conclusión aquí..."
+              className="min-h-[120px] resize-none border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
+            />
+          ) : (
+            <div className="text-muted-foreground text-sm leading-relaxed p-3 whitespace-pre-wrap">
+              {localConclusion || <span className="text-muted-foreground/50 italic">Sin conclusión</span>}
+            </div>
+          )
+        ) : (
           <Textarea
             value={localConclusion}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLocalConclusion(e.target.value)}
-            onBlur={() => { handleSave(); setIsEditing(false) }}
             placeholder="Escribe la conclusión aquí..."
-            className="min-h-[120px] resize-none border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
+            className="min-h-[140px] resize-none bg-muted/40 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
           />
-        ) : (
-          <div className="text-muted-foreground text-sm leading-relaxed p-3 whitespace-pre-wrap">
-            {localConclusion || <span className="text-muted-foreground/50 italic">Sin conclusión</span>}
-          </div>
         )}
       </div>
     </div>

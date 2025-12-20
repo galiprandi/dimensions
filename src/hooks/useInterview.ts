@@ -20,6 +20,7 @@ type Stack = {
   stackId: string
   stackName: string
   label: string
+  topics: string[]
 }
 
 type InterviewData = {
@@ -67,12 +68,20 @@ function processInterviewData(rawData: { data: InterviewDetailData | undefined }
       .filter(evaluation => evaluation.conclusion)
       .map(evaluation => {
         const mainStack = (rawData.data!.mainStacks || []).find(s => s.id === evaluation.mainStack?.id)
+        const topics: string[] = []
+        if (Array.isArray(mainStack?.topics)) {
+          for (const t of mainStack.topics) {
+            const desc = typeof t?.name === 'string' ? t.name.trim() : ''
+            if (desc) topics.push(desc)
+          }
+        }
         return {
           id: evaluation.id as string,
           conclusion: evaluation.conclusion as string,
           stackId: evaluation.mainStack?.id as string,
           stackName: mainStack?.name as string || '',
-          label: mainStack?.name as string || ''
+          label: mainStack?.name as string || '',
+          topics
         }
       })
   }

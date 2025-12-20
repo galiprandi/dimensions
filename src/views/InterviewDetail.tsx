@@ -11,12 +11,14 @@ import { ChevronLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { SeniorityBadge } from '@/components/SeniorityBadge'
 import systemPromptGuide from '../../prompts/system-prompt-guide.md?raw'
-import { Braces } from 'lucide-react'
+import aiJsonPromptGuide from '../../prompts/ai-json-conclusions.md?raw'
+import { Braces, Brain } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import { X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
 import { ApiInstructions } from '@/components/ApiInstructions'
+import { AiConclusionsEditor, type AiConclusionItem } from '@/components/AiConclusionsEditor'
 
 
 // Type declaration for Chrome's experimental AI API
@@ -46,13 +48,64 @@ declare global {
 }
 
 type DimensionItem = {
+  id: string
+  dimensionId: string
   label: string
   conclusion: string
+  topics?: string[]
 }
 
 type StackItem = {
+  id: string
+  stackId: string
   label: string
   conclusion: string
+  topics?: string[]
+}
+
+function buildJsonPrompt(candidate: string, dimensions: DimensionItem[], stack: StackItem[]): string {
+  const filteredDimensions = dimensions.filter(dim => dim.conclusion.trim().length > 0)
+  const filteredStack = stack.filter(s => s.conclusion.trim().length > 0)
+
+  const blocks: string[] = []
+  blocks.push(aiJsonPromptGuide.trim())
+  blocks.push('')
+  blocks.push('Notas del entrevistador:')
+  if (candidate.trim()) {
+    blocks.push(`Candidato: ${candidate.trim()}`)
+  }
+  blocks.push('')
+  if (filteredDimensions.length > 0) {
+    blocks.push('Dimensiones:')
+    filteredDimensions.forEach(dim => {
+      blocks.push(`- ${dim.label} (id: ${dim.dimensionId})`)
+      if (dim.topics && dim.topics.length > 0) {
+        blocks.push(`> Tópicos validados: ${dim.topics.join(', ')}`)
+      }
+      blocks.push(`=> ${dim.conclusion}`)
+    })
+    blocks.push('')
+  }
+  if (filteredStack.length > 0) {
+    blocks.push('Main stacks (contexto):')
+    filteredStack.forEach(s => {
+      blocks.push(`- ${s.label} (id: ${s.stackId})`)
+      if (s.topics && s.topics.length > 0) {
+        blocks.push(`> Tópicos validados: ${s.topics.join(', ')}`)
+      }
+      blocks.push(`=> ${s.conclusion}`)
+    })
+  }
+  return blocks.join('\n').trim()
+}
+
+function stripMarkdownJson(raw: string) {
+  const trimmed = raw.trim()
+  if (trimmed.startsWith('```')) {
+    const withoutFence = trimmed.replace(/^```[a-zA-Z]*\s*/, '').replace(/```$/, '')
+    return withoutFence.trim()
+  }
+  return trimmed
 }
 
 function generateSystemPrompt(candidate: string, dimensions: DimensionItem[], stack: StackItem[]): string {
@@ -133,6 +186,7 @@ function Header({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | ReactElement>('')
+  const [aiParsed, setAiParsed] = useState<AiConclusionItem[]>([])
   const handleGenerate = () => {
     const prompt = generateSystemPrompt(interviewName, dimensions, stack)
     navigator.clipboard.writeText(prompt).then(() => {
@@ -142,12 +196,15 @@ function Header({
     })
   }
 
+  const handleDialogChange = (next: boolean) => {
+    if (next) setDialogOpen(true)
+  }
+
   const handleGenerateAI = async () => {
     setDialogOpen(true)
     setAiLoading(true)
     setAiResult('')
-
-    console.log('Starting AI generation')
+    setAiParsed([])
 
     if (!LanguageModel) {
       setAiResult(<ApiInstructions />)
@@ -156,7 +213,6 @@ function Header({
     }
 
     const availability = await LanguageModel.availability({ languages: ['es'] })
-    console.log('Availability:', availability)
     if (availability === 'no') {
       setAiResult('La API de Prompt no es compatible con este dispositivo. Verifica los requisitos de hardware mencionados arriba.')
       setAiLoading(false)
@@ -165,30 +221,52 @@ function Header({
 
     try {
       let session
+      const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
+
       if (availability === 'readily') {
-        console.log('Creating session readily')
-        session = await LanguageModel.create()
-        console.log('Session created readily')
+        session = await LanguageModel.create({ expectedOutputs })
       } else {
         setAiResult('Descargando el modelo de IA... Esto puede tardar.')
-        console.log('Creating session with download')
         session = await LanguageModel.create({
+          expectedOutputs,
           monitor(m) {
             m.addEventListener('downloadprogress', (e) => {
               setAiResult(`Descargando el modelo... ${Math.round(e.loaded * 100)}%`)
             })
           }
         })
-        console.log('Session created with download')
         setAiResult('Modelo descargado. Generando conclusiones...')
       }
 
-      const prompt = generateSystemPrompt(interviewName, dimensions, stack)
-      console.log('Prompt generated, length:', prompt.length)
-      console.log('Prompting...')
+      const prompt = buildJsonPrompt(interviewName, dimensions, stack)
       const result = await session.prompt(prompt)
-      console.log('Result received, length:', result.length)
       setAiResult(result)
+
+      try {
+        const clean = stripMarkdownJson(result)
+        const parsed = JSON.parse(clean)
+        const items = Array.isArray(parsed?.items) ? parsed.items : []
+        if (Array.isArray(items)) {
+          const normalized: AiConclusionItem[] = items
+            .map((raw): AiConclusionItem | null => {
+              const candidate = raw as { dimensionId?: unknown; conclusion?: unknown }
+              const dimensionId = typeof candidate.dimensionId === 'string' ? candidate.dimensionId.trim() : ''
+              const conclusion = typeof candidate.conclusion === 'string' ? candidate.conclusion : ''
+              if (!dimensionId || !conclusion) return null
+              const dimension = dimensions.find(d => d.dimensionId === dimensionId)
+              const stackMatch = stack.find(s => s.stackId === dimensionId)
+              const label = dimension?.label || stackMatch?.label || dimensionId
+              const evaluationId = dimension?.id || stackMatch?.id || ''
+              const isStack = Boolean(stackMatch)
+              if (!evaluationId) return null
+              return { dimensionId, evaluationId, label, conclusion, isStack }
+            })
+            .filter((item): item is AiConclusionItem => Boolean(item))
+          setAiParsed(normalized)
+        }
+      } catch (error) {
+        console.log('Error parsing AI JSON:', error)
+      }
     } catch (error) {
       console.log('Error in AI generation:', error)
       setAiResult('Error al generar conclusiones: ' + (error as Error).message)
@@ -200,7 +278,16 @@ function Header({
   return (
     <div className="bg-white/90 backdrop-blur-md border-b border-border py-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Volver al listado de candidatos"
+            onClick={onBack}
+            className="shrink-0"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
               <AvatarImage src={photoURL} alt={interviewName} />
@@ -226,37 +313,60 @@ function Header({
               Prompt
             </Button>
             <ButtonGroupSeparator />
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleGenerateAI} className="rounded-l-none">
-                  <Braces className="h-4 w-4 mr-2" />
+                  <Brain className="h-4 w-4 mr-2" />
                   IA
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogContent
+                className="max-w-3xl max-h-[80vh] overflow-y-auto"
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => e.preventDefault()}
+                onInteractOutside={(e) => e.preventDefault()}
+                description="Conclusiones generadas con AI a partir de tus notas"
+              >
                 <div className="relative">
-                  <DialogHeader className="flex flex-row items-start justify-between gap-4 pr-2">
-                    <DialogTitle>Generación con IA</DialogTitle>
+                  <DialogHeader className="sticky top-0 z-10 flex flex-row items-start justify-between gap-4 pr-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 py-2">
+                    <div className="space-y-1">
+                      <DialogTitle>Conclusiones generadas con AI</DialogTitle>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {aiLoading
+                          ? 'Generando conclusiones a partir de tus notas. Esto puede tomar algunos segundos, no cierres el modal.'
+                          : 'Las siguientes son conclusiones redactadas con AI a partir de tus notas. Revisa, ajusta y guarda solo si estás seguro.'}
+                      </p>
+                    </div>
                     <Button variant="ghost" size="icon" onClick={() => setDialogOpen(false)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </DialogHeader>
                   {aiLoading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="animate-spin" />
-                      <p>Generando conclusiones...</p>
+                    <div className="flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground">
+                      <Loader2 className="h-5 w-5 animate-spin text-foreground" />
+                      <p className="text-center">Generando conclusiones...</p>
                     </div>
                   ) : (
-                    <div>
-                      {typeof aiResult === 'string' ? (
-                        <pre className="whitespace-pre-wrap text-sm">{aiResult}</pre>
+                    <div className="space-y-4">
+                      {aiParsed.length > 0 ? (
+                        <AiConclusionsEditor items={aiParsed} />
                       ) : (
-                        aiResult
-                      )}
-                      {typeof aiResult === 'string' && aiResult && (
-                        <Button onClick={() => navigator.clipboard.writeText(aiResult).then(() => toast.success('Copiado al portapapeles'))} variant="outline" size="sm" className="mt-2">
-                          Copiar resultado
-                        </Button>
+                        <div className="space-y-3">
+                          {typeof aiResult === 'string' ? (
+                            <div className="relative rounded-md border border-border bg-muted/40">
+                              <button
+                                type="button"
+                                className="absolute right-2 top-2 rounded-md border border-border bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                                onClick={() => navigator.clipboard.writeText(aiResult).then(() => toast.success('Copiado al portapapeles')).catch(() => toast.error('Error al copiar'))}
+                              >
+                                Copiar
+                              </button>
+                              <pre className="whitespace-pre-wrap text-sm p-3 pr-14">{aiResult}</pre>
+                            </div>
+                          ) : (
+                            aiResult
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
@@ -264,14 +374,6 @@ function Header({
               </DialogContent>
             </Dialog>
           </ButtonGroup>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Volver al listado de candidatos"
-            onClick={onBack}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>
