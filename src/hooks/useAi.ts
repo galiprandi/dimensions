@@ -81,31 +81,10 @@ type UseAiOptions<TParsed> = {
   getPrompt: () => string
   parseResponse: (raw: string) => TParsed
   onDownloadProgress?: (progress: number) => void
-  languageModel?: {
-    availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
-    create(options?: {
-      temperature?: number
-      topK?: number
-      signal?: AbortSignal
-      monitor?: (m: { addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void }) => void
-      initialPrompts?: Array<{
-        role: 'system' | 'user' | 'assistant'
-        content: string
-      }>
-      expectedOutputs?: Array<{
-        type: 'text'
-        languages: string[]
-      }>
-    }): Promise<{
-      prompt(text: string | Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>, options?: { responseConstraint?: unknown }): Promise<string>
-      append(messages: Array<{ role: string; content: string | Array<{ type: string; value: string | Array<{ type: string; value: unknown }> }> }>): Promise<void>
-      destroy(): void
-    }>
-    params(): Promise<{ defaultTopK: number; maxTopK: number; defaultTemperature: number; maxTemperature: number }>
-  }
+  languageModel?: LanguageModelType
 }
 
-type UseAiResult<TParsed> = QueryObserverResult<{ raw: string; parsed: TParsed; metrics: AiMetrics }, Error>
+type UseAiResult<TParsed> = QueryObserverResult<{ raw: string; parsed: TParsed; prompt?: string; metrics: AiMetrics }, Error>
 
 type ProgressEvent = { loaded: number }
 

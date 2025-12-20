@@ -17,13 +17,18 @@ export type StackItem = {
   topics?: string[]
 }
 
-export function buildJsonPrompt(candidate: string, dimensions: DimensionItem[], stack: StackItem[]): string {
+export function buildJsonPrompt(candidate: string, dimensions: DimensionItem[], stack: StackItem[], profileSummary?: string): string {
   const filteredDimensions = dimensions.filter(dim => dim.conclusion.trim().length > 0)
   const filteredStack = stack.filter(s => s.conclusion.trim().length > 0)
 
   const blocks: string[] = []
   blocks.push(aiJsonPromptGuide.trim())
   blocks.push('')
+  if (profileSummary?.trim()) {
+    blocks.push('Reseña del perfil (inferida de LinkedIn/GitHub):')
+    blocks.push(profileSummary.trim())
+    blocks.push('')
+  }
   blocks.push('Notas del entrevistador:')
   if (candidate.trim()) {
     blocks.push(`Candidato: ${candidate.trim()}`)

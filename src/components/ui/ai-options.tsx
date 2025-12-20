@@ -1,115 +1,34 @@
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { StatusBadge } from '@/components/StatusBadge'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ChevronLeft, Brain, Braces, RotateCcw, Loader2, X, Check } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
-import { AiUnavailableModal } from '@/components/AiUnavailableModal'
-import { AiConclusionsEditor } from '@/components/AiConclusionsEditor'
-import { SeniorityBadge } from '@/components/SeniorityBadge'
-import { toast } from 'sonner'
-import { useGenerateConclusions } from '@/hooks/useGenerateConclusions'
-import { generateSystemPrompt, type DimensionItem, type StackItem } from '@/utils/ai'
-import { AiOptions } from './ui/ai-options'
+import { Braces } from "lucide-react";
+import { Button } from "./button";
+import { ButtonGroup, ButtonGroupSeparator } from "./button-group";
+import { useAIConclusions } from "@/hooks/useAIConclusions";
 
-
-
-export function InterviewHeader({
-  interviewId,
-  interviewName,
-  status,
-  isLoading,
-  onBack,
-  photoURL,
-  seniority,
-  dimensions,
-  stack,
-  profileUrl,
-}: HeaderProps) {
-  const simulateUnavailable = false
-  const ENABLE_PROFILE_IN_CONCLUSIONS = true // Comentar esta línea para deshabilitar la inferencia de perfil en conclusiones
-
-  const [dialogOpen, setDialogOpen] = useState(false)
-
-  const generateConclusions = useGenerateConclusions({
-    id: interviewId,
-    interviewName,
-    dimensions,
-    stack,
-    profileUrl,
-    enableProfile: ENABLE_PROFILE_IN_CONCLUSIONS,
-  })
-
-  const aiQuery = generateConclusions
-
-  const handleGenerate = () => {
-    const prompt = generateSystemPrompt(interviewName, dimensions, stack)
-    navigator.clipboard.writeText(prompt).then(() => {
-      toast.success('Prompt copiado al portapapeles')
-    }).catch(() => {
-      toast.error('Error al copiar')
-    })
-  }
-
-  const handleDialogChange = (next: boolean) => {
-    if (next) setDialogOpen(true)
-  }
-
-  const handleGenerateAI = async () => {
-    setDialogOpen(true)
-
-    try {
-      const res = await generateConclusions.refetch()
-      if (res) {
-        // Data updated automatically via query
-      }
-    } catch (err) {
-      // Error handled by query
-      console.error('Error generating conclusions:', err)
-    }
-  }
-
-  return (
-    <div className="bg-white/90 backdrop-blur-md border-b border-border py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Volver al listado de candidatos"
-            onClick={onBack}
-            className="shrink-0"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={photoURL} alt={interviewName} />
-              <AvatarFallback>
-                {interviewName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold text-foreground">
-                  {isLoading ? <Skeleton className="h-6 w-32" /> : interviewName}
-                </span>
-                {isLoading ? <Skeleton className="h-6 w-20" /> : <StatusBadge status={status} />}
-                {seniority && <SeniorityBadge seniority={seniority} />}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* <AiOptions interviewId={interviewId} /> */}
-          <ButtonGroup>
-            <Button title='Copiar prompt al portapapeles' onClick={handleGenerate} variant="outline" size="sm" className="rounded-r-none border-r-0">
+export function AiOptions({interviewId}:{interviewId: string}) {
+    const { data: _data, status: _status, refetch: _refetch } = useAIConclusions({
+        interviewId,
+    });
+   
+    
+    return <><ButtonGroup>
+            <Button title='Copiar prompt al portapapeles' onClick={() => {}} variant="outline" size="sm" className="rounded-r-none border-r-0">
               <Braces className="h-4 w-4 mr-2" />
             </Button>
             <ButtonGroupSeparator />
-            <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
+           
+          </ButtonGroup>
+           {/* <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleGenerateAI} className="rounded-l-none">
+        enableProfile: ENABLE_PROFILE_IN_CONCLUSIONS,
+      })
+  return <><ButtonGroup>
+            <Button title='Copiar prompt al portapapeles' onClick={() => {}} variant="outline" size="sm" className="rounded-r-none border-r-0">
+              <Braces className="h-4 w-4 mr-2" />
+            </Button>
+            <ButtonGroupSeparator />
+           
+          </ButtonGroup>
+           {/* <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleGenerateAI} className="rounded-l-none">
                   <Brain className="h-4 w-4 mr-2" />
@@ -186,23 +105,5 @@ export function InterviewHeader({
                   )}
                 </div>
               </DialogContent>
-            </Dialog>
-          </ButtonGroup>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-type HeaderProps = {
-  interviewId: string
-  interviewName: string
-  status: string
-  isLoading: boolean
-  onBack: () => void
-  photoURL: string
-  seniority: string
-  dimensions: DimensionItem[]
-  stack: StackItem[]
-  profileUrl?: string
-}
+            </Dialog> */}
+          </>}
