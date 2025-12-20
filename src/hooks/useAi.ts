@@ -29,7 +29,7 @@ export function useAi<TParsed>(options: UseAiOptions<TParsed>): UseAiResult<TPar
     throw new Error('LanguageModel no está disponible. Proporciona languageModel en las opciones.')
   }
 
-  const query = useQuery<{ raw: string; parsed: TParsed }, Error>({
+  const query = useQuery<{ raw: string; parsed: TParsed; metrics: AiMetrics }, Error>({
     queryKey: ['AI', id],
     enabled: false,
     staleTime: Infinity,
@@ -55,10 +55,21 @@ export function useAi<TParsed>(options: UseAiOptions<TParsed>): UseAiResult<TPar
       }
 
       const prompt = getPrompt()
+      const start = performance.now()
       const result = await session.prompt(prompt)
+      const durationMs = Math.round(performance.now() - start)
       const parsed = parseResponse(result)
 
-      return { raw: result, parsed }
+      return {
+        raw: result,
+        parsed,
+        metrics: {
+          durationMs,
+          promptChars: prompt.length,
+          responseChars: result.length,
+          availability,
+        },
+      }
     },
   })
 
@@ -94,9 +105,16 @@ type UseAiOptions<TParsed> = {
   }
 }
 
-type UseAiResult<TParsed> = QueryObserverResult<{ raw: string; parsed: TParsed }, Error>
+type UseAiResult<TParsed> = QueryObserverResult<{ raw: string; parsed: TParsed; metrics: AiMetrics }, Error>
 
 type ProgressEvent = { loaded: number }
+
+type AiMetrics = {
+  durationMs: number
+  promptChars: number
+  responseChars: number
+  availability: 'readily' | 'after-download'
+}
 
 type LanguageModelType = {
   availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>

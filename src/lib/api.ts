@@ -3,15 +3,19 @@ import axios from 'axios'
 const FALLBACK_PROD_API = 'https://backoffice.rooftop.dev/api/graphql'
 
 function detectApiUrl() {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl) return envUrl
 
-  // On GitHub Pages we are served from https://<user>.github.io/<repo>, so use the absolute API.
-  const host = typeof window !== 'undefined' ? window.location.hostname : ''
-  const isGithubPages = host.endsWith('github.io')
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname || ''
+    // GitHub Pages or any non-localhost host -> use absolute backend
+    const isGithubPages = host.endsWith('github.io')
+    const isLocalhost = host.includes('localhost') || host.startsWith('127.') || host === ''
 
-  if (isGithubPages) return FALLBACK_PROD_API
+    if (isGithubPages || !isLocalhost) return FALLBACK_PROD_API
+  }
 
-  // Local dev (proxied in Vite).
+  // Local dev (proxied in Vite)
   return '/api/graphql'
 }
 
