@@ -3,9 +3,11 @@ import type { AiConclusionItem } from '@/types/ai'
 
 type AiConclusionsEditorProps = {
   items: AiConclusionItem[]
+  dimensions: Array<{ id: string; conclusion: string }>
+  stacks: Array<{ id: string; conclusion: string }>
 }
 
-export function AiConclusionsEditor({ items }: AiConclusionsEditorProps) {
+export function AiConclusionsEditor({ items, dimensions, stacks }: AiConclusionsEditorProps) {
   return (
     <div className="space-y-4">
       {items.map(item => (
@@ -19,6 +21,9 @@ export function AiConclusionsEditor({ items }: AiConclusionsEditorProps) {
             topics: [],
             dimensionId: item.isStack ? undefined : item.dimensionId,
             stackId: item.isStack ? item.dimensionId : undefined,
+            currentConclusion: item.isStack
+              ? stacks.find(stack => stack.id === item.evaluationId)?.conclusion
+              : dimensions.find(dimension => dimension.id === item.evaluationId)?.conclusion,
           }}
         />
       ))}

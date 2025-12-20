@@ -16,6 +16,7 @@ type EvaluationItemProps = {
     topics: string[]
     stackId?: string
     dimensionId?: string
+    currentConclusion?: string
   }
   mode?: 'toggle' | 'editOnly'
 }
@@ -126,7 +127,11 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
             <Button
               size="icon"
               onClick={handleSave}
-              disabled={mutation.isPending || localConclusion.trim().length === 0}
+              disabled={
+                mutation.isPending ||
+                localConclusion.trim().length === 0 ||
+                localConclusion.trim() === (item.currentConclusion?.trim() ?? '')
+              }
               aria-label="Guardar conclusión"
               className="h-9 w-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
             >
