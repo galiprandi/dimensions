@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { LoginForm } from './components/LoginForm'
 import { Modal } from './components/Modal'
 import { Toaster } from '@/components/ui/sonner'
@@ -15,7 +16,8 @@ function App() {
   const [loginStatus, setLoginStatus] = useState('')
   const [isLoginLoading, setIsLoginLoading] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const { user, saveUser, clearUser } = useUser()
+  const { user, saveUser, clearUser, refreshUser } = useUser()
+  const queryClient = useQueryClient()
 
   const { refetch: refetchInterviews } = useInterviews()
 
@@ -55,6 +57,7 @@ function App() {
         localStorage.setItem('last-login-email', identity)
         setIsLoginOpen(false)
         await refetchInterviews()
+        void refreshUser()
       }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
@@ -67,7 +70,9 @@ function App() {
   const handleLogout = () => {
     clearUser()
     setLoginStatus('Sesión cerrada.')
-    setIsLoginOpen(false)
+    setLoginSecret('')
+    queryClient.removeQueries({ queryKey: ['interviews'] })
+    setIsLoginOpen(true)
   }
 
   return (

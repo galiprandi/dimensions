@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { apiClient } from '@/lib/api'
 
 type User = {
   label: string
   avatar: string
   identity: string
   photoURL?: string
+  id?: string
 }
 
 const STORAGE_KEY = 'user-session'
@@ -33,5 +35,48 @@ export function useUser() {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  return { user, saveUser, clearUser }
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await apiClient.post('', {
+        query: `query {
+          authenticatedItem {
+            __typename
+            ... on BackofficeUser {
+              id
+              name
+              email
+              photoURL
+            }
+          }
+        }`,
+      })
+      const auth = res.data?.data?.authenticatedItem
+      if (auth?.__typename === 'BackofficeUser') {
+        const name = typeof auth.name === 'string' ? auth.name : ''
+        const email = typeof auth.email === 'string' ? auth.email : ''
+        const label = name || email || 'User'
+        const avatar = email || name || ''
+        const next: User = {
+          id: auth.id,
+          label,
+          avatar,
+          identity: email || label,
+          photoURL: auth.photoURL || undefined,
+        }
+        saveUser(next)
+      }
+    } catch {
+      // ignore failures; likely not authenticated
+    }
+  }, [])
+
+  useEffect(() => {
+    if (user) return
+    const timer = setTimeout(() => {
+      void refreshUser()
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [user, refreshUser])
+
+  return { user, saveUser, clearUser, refreshUser }
 }
