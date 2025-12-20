@@ -1,3 +1,5 @@
+import { apiClient } from './api'
+
 export type InterviewListItem = {
   id: string
   professionalName: string
@@ -11,28 +13,15 @@ const INTERVIEWS_QUERY =
   'query ($take: Int!, $skip: Int!) {\n  items: interviews(take: $take, skip: $skip) {\n    id\n    professionalName\n    status\n    deepProfile\n    professional {\n      photoURL\n      seniority\n    }\n  }\n}'
 
 export async function fetchInterviews(params: { take: number; skip: number }) {
-  const res = await fetch('/api/graphql', {
-    method: 'POST',
-    headers: {
-      accept: '*/*',
-      'content-type': 'application/json',
-      'apollo-require-preflight': 'true',
+  const res = await apiClient.post('', {
+    variables: {
+      take: params.take,
+      skip: params.skip,
     },
-    credentials: 'include',
-    body: JSON.stringify({
-      variables: {
-        take: params.take,
-        skip: params.skip,
-      },
-      query: INTERVIEWS_QUERY,
-    }),
+    query: INTERVIEWS_QUERY,
   })
 
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`)
-  }
-
-  const json = await res.json()
+  const json = res.data
   if (json.errors) {
     throw new Error(json.errors[0].message)
   }

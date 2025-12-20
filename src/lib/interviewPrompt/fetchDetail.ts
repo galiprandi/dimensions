@@ -1,3 +1,4 @@
+import { apiClient } from '../api'
 import type { GraphQLInterviewResponse } from './types'
 import { INTERVIEW_QUERY } from './graphql'
 
@@ -8,32 +9,15 @@ type FetchInterviewDetailResult =
 export async function fetchInterviewDetail(params: { interviewId: string }): Promise<FetchInterviewDetailResult> {
   const id = params.interviewId.trim()
 
-  const res = await fetch('/api/graphql', {
-    method: 'POST',
-    headers: {
-      accept: '*/*',
-      'content-type': 'application/json',
-      'apollo-require-preflight': 'true',
-    },
-    credentials: 'include',
-    body: JSON.stringify({
+  try {
+    const res = await apiClient.post('', {
       operationName: 'Interview',
       variables: { where: { id } },
       query: INTERVIEW_QUERY,
-    }),
-  })
-
-  if (!res.ok) {
-    return { ok: false as const, message: `HTTP ${res.status}`, data: undefined }
-  }
-
-  let parsed: GraphQLInterviewResponse
-  try {
-    parsed = (await res.json()) as GraphQLInterviewResponse
+    })
+    return { ok: true as const, message: '', data: res.data as GraphQLInterviewResponse }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     return { ok: false as const, message, data: undefined }
   }
-
-  return { ok: true as const, message: '', data: parsed }
 }

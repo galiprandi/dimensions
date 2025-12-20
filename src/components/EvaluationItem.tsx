@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TopicsDialog } from './TopicsDialog'
+import { API_URL } from '@/lib/api'
 
 type EvaluationItemProps = {
   item: {
@@ -39,7 +40,7 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
       const mutationName = isStack ? 'updateMainStackEvaluation' : 'updateDimensionEvaluation'
       const inputType = isStack ? 'MainStackEvaluationWhereUniqueInput!' : 'DimensionEvaluationWhereUniqueInput!'
       const updateInput = isStack ? 'MainStackEvaluationUpdateInput!' : 'DimensionEvaluationUpdateInput!'
-      const res = await fetch('/api/graphql', {
+      const res = await fetch(API_URL, {
         method: 'POST',
         headers: {
           accept: '*/*',
