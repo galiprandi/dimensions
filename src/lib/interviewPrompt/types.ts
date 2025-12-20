@@ -2,6 +2,7 @@ export type GraphQLInterviewResponse = {
   data?: {
     interview?: {
       status?: unknown
+      deepProfile?: unknown
       professional?: {
         fullName?: unknown
         photoURL?: unknown

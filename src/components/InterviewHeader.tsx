@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ChevronLeft, Brain, Braces, RotateCcw, Loader2, X } from 'lucide-react'
+import { ChevronLeft, Brain, Braces, RotateCcw, Loader2, X, Globe } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
 import { AiUnavailableModal } from '@/components/AiUnavailableModal'
@@ -13,6 +13,7 @@ import { SeniorityBadge } from '@/components/SeniorityBadge'
 import { toast } from 'sonner'
 import type { AiConclusionItem } from '@/types/ai'
 import { useAi } from '@/hooks/useAi'
+import { useProfileInsight } from '@/hooks/useProfileInsight'
 import { buildJsonPrompt, generateSystemPrompt, stripMarkdownJson, type DimensionItem, type StackItem } from '@/utils/ai'
 
 type HeaderProps = {
@@ -25,6 +26,7 @@ type HeaderProps = {
   seniority: string
   dimensions: DimensionItem[]
   stack: StackItem[]
+  profileUrl?: string
 }
 
 export function InterviewHeader({
@@ -37,11 +39,22 @@ export function InterviewHeader({
   seniority,
   dimensions,
   stack,
+  profileUrl,
 }: HeaderProps) {
   const simulateUnavailable = false
   const [dialogOpen, setDialogOpen] = useState(false)
   const [aiResult, setAiResult] = useState<string | ReactElement>('')
   const [aiParsed, setAiParsed] = useState<AiConclusionItem[]>([])
+
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [profileSummary, setProfileSummary] = useState<string>('')
+
+  const profileQuery = useProfileInsight({
+    id: interviewId,
+    profileUrl,
+    roleLabel: 'Frontend/Full Stack',
+    targetSeniority: seniority,
+  })
 
   const aiQuery = useAi<AiConclusionItem[]>({
     id: interviewId,
@@ -80,6 +93,33 @@ export function InterviewHeader({
 
   const handleDialogChange = (next: boolean) => {
     if (next) setDialogOpen(true)
+  }
+
+  const handleGenerateProfile = async () => {
+    if (!profileUrl) {
+      toast.error('No hay URL de perfil disponible')
+      return
+    }
+
+    setProfileDialogOpen(true)
+    setProfileSummary('')
+
+    if (profileQuery.data) {
+      setProfileSummary(profileQuery.data.summary)
+      return
+    }
+
+    profileQuery
+      .refetch()
+      .then((res) => {
+        if (res.data) {
+          setProfileSummary(res.data.summary)
+        }
+      })
+      .catch((err: unknown) => {
+        toast.error('Error al generar reseña desde perfil: ' + (err as Error).message)
+        setProfileDialogOpen(false)
+      })
   }
 
   const handleGenerateAI = async () => {
@@ -147,6 +187,11 @@ export function InterviewHeader({
             <Button onClick={handleGenerate} variant="outline" size="sm" className="rounded-r-none border-r-0">
               <Braces className="h-4 w-4 mr-2" />
               Prompt
+            </Button>
+            <ButtonGroupSeparator />
+            <Button onClick={handleGenerateProfile} variant="outline" size="sm" className="rounded-none border-r-0" disabled={!profileUrl}>
+              <Globe className="h-4 w-4 mr-2" />
+              Perfil
             </Button>
             <ButtonGroupSeparator />
             <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
@@ -231,6 +276,35 @@ export function InterviewHeader({
                     </>
                   )}
                 </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Reseña generada desde perfil</DialogTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Reseña técnica inferida del perfil público usando AI.
+                  </p>
+                </DialogHeader>
+                {profileQuery.isFetching ? (
+                  <div className="flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin text-foreground" />
+                    <p className="text-center">Generando reseña...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative rounded-md border border-border bg-muted/40">
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2 rounded-md border border-border bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                        onClick={() => navigator.clipboard.writeText(profileSummary).then(() => toast.success('Copiado al portapapeles')).catch(() => toast.error('Error al copiar'))}
+                      >
+                        Copiar
+                      </button>
+                      <pre className="whitespace-pre-wrap text-sm p-3 pr-14">{profileSummary || 'No se generó reseña aún.'}</pre>
+                    </div>
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </ButtonGroup>

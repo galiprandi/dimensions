@@ -28,6 +28,7 @@ type InterviewData = {
   photoURL: string
   seniority: string
   status: string
+  profileUrl: string
   dimensions: Dimension[]
   stack: Stack[]
 }
@@ -40,6 +41,7 @@ function processInterviewData(rawData: { data: InterviewDetailData | undefined }
     photoURL: rawData.data.interview.professional?.photoURL as string || '',
     seniority: rawData.data.interview.professional?.seniority as string || '',
     status: rawData.data.interview.status as string || '',
+    profileUrl: (rawData.data.interview.deepProfile as string) || '',
     dimensions: (rawData.data.interview.dimensionEvaluations || [])
       .filter(evaluation => evaluation.conclusion)
       .map(evaluation => {

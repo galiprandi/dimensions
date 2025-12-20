@@ -8,7 +8,7 @@ export function InterviewDetail() {
   const navigate = useNavigate()
 
   const { data: interviewData, isLoading } = useInterview(id)
-  const { candidate = '', status = '', dimensions = [], stack = [], photoURL = '', seniority = '' } = interviewData || {}
+  const { candidate = '', status = '', dimensions = [], stack = [], photoURL = '', seniority = '', profileUrl = '' } = interviewData || {}
   
   
   return (
@@ -24,6 +24,7 @@ export function InterviewDetail() {
           dimensions={dimensions}
           stack={stack}
           interviewId={id}
+          profileUrl={profileUrl}
         />
 
 
