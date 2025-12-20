@@ -1,12 +1,5 @@
 import { EvaluationItem } from './EvaluationItem'
-
-export type AiConclusionItem = {
-  dimensionId: string
-  evaluationId: string
-  label: string
-  conclusion: string
-  isStack?: boolean
-}
+import type { AiConclusionItem } from '@/types/ai'
 
 type AiConclusionsEditorProps = {
   items: AiConclusionItem[]

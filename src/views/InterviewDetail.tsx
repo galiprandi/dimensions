@@ -12,40 +12,18 @@ import { toast } from 'sonner'
 import { SeniorityBadge } from '@/components/SeniorityBadge'
 import systemPromptGuide from '../../prompts/system-prompt-guide.md?raw'
 import aiJsonPromptGuide from '../../prompts/ai-json-conclusions.md?raw'
-import { Braces, Brain } from 'lucide-react'
+import { Braces, Brain, RotateCcw } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import { X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
 import { ApiInstructions } from '@/components/ApiInstructions'
-import { AiConclusionsEditor, type AiConclusionItem } from '@/components/AiConclusionsEditor'
+import { AiConclusionsEditor } from '@/components/AiConclusionsEditor'
+import type { AiConclusionItem } from '@/types/ai'
+import { useAi } from '@/hooks/useAi'
 
 
-// Type declaration for Chrome's experimental AI API
-declare global {
-  const LanguageModel: {
-    availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
-    create(options?: {
-      temperature?: number
-      topK?: number
-      signal?: AbortSignal
-      monitor?: (m: { addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void }) => void
-      initialPrompts?: Array<{
-        role: 'system' | 'user' | 'assistant'
-        content: string
-      }>
-      expectedOutputs?: Array<{
-        type: 'text'
-        languages: string[]
-      }>
-    }): Promise<{
-      prompt(text: string | Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>, options?: { responseConstraint?: unknown }): Promise<string>
-      append(messages: Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>): Promise<void>
-      destroy(): void
-    }>
-    params(): Promise<{ defaultTopK: number; maxTopK: number; defaultTemperature: number; maxTemperature: number }>
-  }
-}
+
 
 type DimensionItem = {
   id: string
@@ -153,6 +131,7 @@ export function InterviewDetail() {
           seniority={seniority}
           dimensions={dimensions}
           stack={stack}
+          interviewId={id}
         />
 
 
@@ -163,6 +142,7 @@ export function InterviewDetail() {
 }
 
 type HeaderProps = {
+  interviewId: string
   interviewName: string
   status: string
   isLoading: boolean
@@ -174,6 +154,7 @@ type HeaderProps = {
 }
 
 function Header({
+  interviewId,
   interviewName,
   status,
   isLoading,
@@ -184,9 +165,35 @@ function Header({
   stack,
 }: HeaderProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | ReactElement>('')
   const [aiParsed, setAiParsed] = useState<AiConclusionItem[]>([])
+
+  const aiQuery = useAi<AiConclusionItem[]>({
+    id: interviewId,
+    getPrompt: () => buildJsonPrompt(interviewName, dimensions, stack),
+    parseResponse: (raw: string) => {
+      const clean = stripMarkdownJson(raw)
+      const parsed = JSON.parse(clean)
+      const items = Array.isArray(parsed?.items) ? parsed.items : []
+      const normalized: AiConclusionItem[] = items
+        .map((rawItem: { dimensionId?: unknown; conclusion?: unknown }): AiConclusionItem | null => {
+          const candidate = rawItem
+          const dimensionId = typeof candidate.dimensionId === 'string' ? candidate.dimensionId.trim() : ''
+          const conclusion = typeof candidate.conclusion === 'string' ? candidate.conclusion : ''
+          if (!dimensionId || !conclusion) return null
+          const dimension = dimensions.find(d => d.dimensionId === dimensionId)
+          const stackMatch = stack.find(s => s.stackId === dimensionId)
+          const label = dimension?.label || stackMatch?.label || dimensionId
+          const evaluationId = dimension?.id || stackMatch?.id || ''
+          const isStack = Boolean(stackMatch)
+          if (!evaluationId) return null
+          return { dimensionId, evaluationId, label, conclusion, isStack }
+        })
+        .filter((item: AiConclusionItem | null): item is AiConclusionItem => Boolean(item))
+      return normalized
+    },
+  })
+
   const handleGenerate = () => {
     const prompt = generateSystemPrompt(interviewName, dimensions, stack)
     navigator.clipboard.writeText(prompt).then(() => {
@@ -202,77 +209,31 @@ function Header({
 
   const handleGenerateAI = async () => {
     setDialogOpen(true)
-    setAiLoading(true)
     setAiResult('')
     setAiParsed([])
 
     if (!LanguageModel) {
       setAiResult(<ApiInstructions />)
-      setAiLoading(false)
       return
     }
 
-    const availability = await LanguageModel.availability({ languages: ['es'] })
-    if (availability === 'no') {
-      setAiResult('La API de Prompt no es compatible con este dispositivo. Verifica los requisitos de hardware mencionados arriba.')
-      setAiLoading(false)
+    if (aiQuery.data) {
+      setAiResult(aiQuery.data.raw)
+      setAiParsed(aiQuery.data.parsed)
       return
     }
 
-    try {
-      let session
-      const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
-
-      if (availability === 'readily') {
-        session = await LanguageModel.create({ expectedOutputs })
-      } else {
-        setAiResult('Descargando el modelo de IA... Esto puede tardar.')
-        session = await LanguageModel.create({
-          expectedOutputs,
-          monitor(m) {
-            m.addEventListener('downloadprogress', (e) => {
-              setAiResult(`Descargando el modelo... ${Math.round(e.loaded * 100)}%`)
-            })
-          }
-        })
-        setAiResult('Modelo descargado. Generando conclusiones...')
-      }
-
-      const prompt = buildJsonPrompt(interviewName, dimensions, stack)
-      const result = await session.prompt(prompt)
-      setAiResult(result)
-
-      try {
-        const clean = stripMarkdownJson(result)
-        const parsed = JSON.parse(clean)
-        const items = Array.isArray(parsed?.items) ? parsed.items : []
-        if (Array.isArray(items)) {
-          const normalized: AiConclusionItem[] = items
-            .map((raw): AiConclusionItem | null => {
-              const candidate = raw as { dimensionId?: unknown; conclusion?: unknown }
-              const dimensionId = typeof candidate.dimensionId === 'string' ? candidate.dimensionId.trim() : ''
-              const conclusion = typeof candidate.conclusion === 'string' ? candidate.conclusion : ''
-              if (!dimensionId || !conclusion) return null
-              const dimension = dimensions.find(d => d.dimensionId === dimensionId)
-              const stackMatch = stack.find(s => s.stackId === dimensionId)
-              const label = dimension?.label || stackMatch?.label || dimensionId
-              const evaluationId = dimension?.id || stackMatch?.id || ''
-              const isStack = Boolean(stackMatch)
-              if (!evaluationId) return null
-              return { dimensionId, evaluationId, label, conclusion, isStack }
-            })
-            .filter((item): item is AiConclusionItem => Boolean(item))
-          setAiParsed(normalized)
+    aiQuery
+      .refetch()
+      .then((res: { data?: { raw: string; parsed: AiConclusionItem[] } }) => {
+        if (res.data) {
+          setAiResult(res.data.raw)
+          setAiParsed(res.data.parsed)
         }
-      } catch (error) {
-        console.log('Error parsing AI JSON:', error)
-      }
-    } catch (error) {
-      console.log('Error in AI generation:', error)
-      setAiResult('Error al generar conclusiones: ' + (error as Error).message)
-    } finally {
-      setAiLoading(false)
-    }
+      })
+      .catch((err: unknown) => {
+        setAiResult('Error al generar conclusiones: ' + (err as Error).message)
+      })
   }
 
   return (
@@ -332,16 +293,38 @@ function Header({
                     <div className="space-y-1">
                       <DialogTitle>Conclusiones generadas con AI</DialogTitle>
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        {aiLoading
+                        {aiQuery.isFetching
                           ? 'Generando conclusiones a partir de tus notas. Esto puede tomar algunos segundos, no cierres el modal.'
                           : 'Las siguientes son conclusiones redactadas con AI a partir de tus notas. Revisa, ajusta y guarda solo si estás seguro.'}
                       </p>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setDialogOpen(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setAiResult('')
+                          setAiParsed([])
+                          aiQuery.refetch().then(res => {
+                            if (res.data) {
+                              setAiResult(res.data.raw)
+                              setAiParsed(res.data.parsed)
+                            }
+                          }).catch((err: unknown) => {
+                            setAiResult('Error al generar conclusiones: ' + (err as Error).message)
+                          })
+                        }}
+                        disabled={aiQuery.isFetching}
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Generar
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDialogOpen(false)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </DialogHeader>
-                  {aiLoading ? (
+                  {aiQuery.isFetching ? (
                     <div className="flex flex-col items-center gap-3 py-8 text-sm text-muted-foreground">
                       <Loader2 className="h-5 w-5 animate-spin text-foreground" />
                       <p className="text-center">Generando conclusiones...</p>
