@@ -15,6 +15,7 @@ import { Braces } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import { X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { ButtonGroup, ButtonGroupSeparator } from '@/components/ui/button-group'
 import { ApiInstructions } from '@/components/ApiInstructions'
 
 
@@ -219,45 +220,50 @@ function Header({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleGenerate} variant="outline" size="sm">
-            <Braces className="h-4 w-4 mr-2" />
-            Prompt
-          </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" onClick={handleGenerateAI}>
-                <Braces className="h-4 w-4 mr-2" />
-                IA
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto relative">
-              <DialogHeader>
-                <DialogTitle>Generación con IA</DialogTitle>
-              </DialogHeader>
-              <Button variant="ghost" size="icon" className="absolute top-4 right-4" onClick={() => setDialogOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-              {aiLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" />
-                  <p>Generando conclusiones...</p>
-                </div>
-              ) : (
-                <div>
-                  {typeof aiResult === 'string' ? (
-                    <pre className="whitespace-pre-wrap text-sm">{aiResult}</pre>
-                  ) : (
-                    aiResult
-                  )}
-                  {typeof aiResult === 'string' && aiResult && (
-                    <Button onClick={() => navigator.clipboard.writeText(aiResult).then(() => toast.success('Copiado al portapapeles'))} variant="outline" size="sm" className="mt-2">
-                      Copiar resultado
+          <ButtonGroup>
+            <Button onClick={handleGenerate} variant="outline" size="sm" className="rounded-r-none border-r-0">
+              <Braces className="h-4 w-4 mr-2" />
+              Prompt
+            </Button>
+            <ButtonGroupSeparator />
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleGenerateAI} className="rounded-l-none">
+                  <Braces className="h-4 w-4 mr-2" />
+                  IA
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                <div className="relative">
+                  <DialogHeader className="flex flex-row items-start justify-between gap-4 pr-2">
+                    <DialogTitle>Generación con IA</DialogTitle>
+                    <Button variant="ghost" size="icon" onClick={() => setDialogOpen(false)}>
+                      <X className="h-4 w-4" />
                     </Button>
+                  </DialogHeader>
+                  {aiLoading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="animate-spin" />
+                      <p>Generando conclusiones...</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {typeof aiResult === 'string' ? (
+                        <pre className="whitespace-pre-wrap text-sm">{aiResult}</pre>
+                      ) : (
+                        aiResult
+                      )}
+                      {typeof aiResult === 'string' && aiResult && (
+                        <Button onClick={() => navigator.clipboard.writeText(aiResult).then(() => toast.success('Copiado al portapapeles'))} variant="outline" size="sm" className="mt-2">
+                          Copiar resultado
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </ButtonGroup>
           <Button
             variant="ghost"
             size="icon"
