@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const FALLBACK_PROD_API = 'https://backoffice.rooftop.dev/api/graphql'
+const FALLBACK_PROD_API = 'ttps://interviews.galiprandi.workers.dev'
 
 function detectApiUrl() {
   const envUrl = import.meta.env.VITE_API_URL
