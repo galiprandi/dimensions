@@ -4,6 +4,8 @@ export type GraphQLInterviewResponse = {
       status?: unknown
       professional?: {
         fullName?: unknown
+        photoURL?: unknown
+        seniority?: unknown
       }
       conclusion?: unknown
       subdimensionsToEvaluate?: Array<{

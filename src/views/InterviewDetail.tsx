@@ -1,18 +1,17 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { EvaluatedDimensionsList } from '@/components/EvaluatedDimensionsList'
+import { EvaluationsList } from '@/components/EvaluationsList'
 import { useInterview } from '@/hooks/useInterview'
+import { StatusBadge } from '@/components/StatusBadge'
+import { Skeleton } from '@/components/ui/skeleton'
 
 
-export function InterviewDetailView() {
+export function InterviewDetail() {
   const { id = 'none' } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const interviewData = useInterview(id)
-  const { candidate = '', statusLabel = '', dimensions = [], stack = [] } = interviewData || {}
-
-  console.log({ candidate, statusLabel, dimensions, stack })
+  const { data: interviewData, isLoading } = useInterview(id)
+  const { candidate = '', status = '', dimensions = [], stack = [] } = interviewData || {}
   
   
   return (
@@ -20,12 +19,13 @@ export function InterviewDetailView() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
         <Header
           interviewName={candidate}
-          statusLabel={statusLabel}
+          status={status}
+          isLoading={isLoading}
           onBack={() => navigate('/interviews')}
         />
 
 
-        <EvaluatedDimensionsList dimensions={dimensions || []} stacks={stack || []} />
+        <EvaluationsList dimensions={dimensions || []} stacks={stack || []} isLoading={isLoading} />
       </div>
     </div>
   )
@@ -33,13 +33,15 @@ export function InterviewDetailView() {
 
 type HeaderProps = {
   interviewName: string
-  statusLabel: string
+  status: string
+  isLoading: boolean
   onBack: () => void
 }
 
 function Header({
   interviewName,
-  statusLabel,
+  status,
+  isLoading,
   onBack,
 }: HeaderProps) {
   return (
@@ -49,14 +51,9 @@ function Header({
         <div className="flex w-full items-center gap-4">
           <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
             <span>
-              {interviewName}
+              {isLoading ? <Skeleton className="h-6 w-32" /> : interviewName}
             </span>
-            <Badge
-              variant="outline"
-              className="text-muted-foreground border-border bg-background text-xs"
-            >
-              {statusLabel}
-            </Badge>
+            {isLoading ? <Skeleton className="h-6 w-20" /> : <StatusBadge status={status} />}
           </div>
         </div>
       </div>

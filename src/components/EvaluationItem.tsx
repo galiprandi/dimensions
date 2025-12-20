@@ -8,7 +8,7 @@ import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { TopicsDialog } from './TopicsDialog'
 
-type EvaluatedDimensionItemProps = {
+type EvaluationItemProps = {
   item: {
     id: string
     label: string
@@ -19,7 +19,7 @@ type EvaluatedDimensionItemProps = {
   }
 }
 
-export function EvaluatedDimensionItem({ item }: EvaluatedDimensionItemProps) {
+export function EvaluationItem({ item }: EvaluationItemProps) {
 
   const [isEditing, setIsEditing] = useState(false)
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)

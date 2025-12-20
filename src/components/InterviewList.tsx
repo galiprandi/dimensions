@@ -7,7 +7,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import type { InterviewListItem } from '@/types/interviews'
+import { Globe } from 'lucide-react'
+import { StatusBadge } from './StatusBadge'
+import { Skeleton } from '@/components/ui/skeleton'
+
+interface InterviewListItem {
+  id: string
+  candidate: string
+  status: string
+  profile: string
+}
 
 interface Props {
   items: InterviewListItem[]
@@ -33,6 +42,37 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
     })
   }, [items])
 
+  if (isLoading) {
+    return (
+      <div className="border rounded-lg bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Candidate</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Profile</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-20" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-16" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
+
   return (
     <div className="border rounded-lg bg-card">
       {error && <div className="px-4 pt-3 text-sm text-destructive">{error}</div>}
@@ -40,10 +80,9 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Professional</TableHead>
+            <TableHead>Candidate</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Complete</TableHead>
-            <TableHead>Deep</TableHead>
+            <TableHead>Profile</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -54,16 +93,24 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
               className="cursor-pointer hover:bg-muted/50"
             >
               <TableCell className="font-medium max-w-xs truncate">
-                {r.professionalName || '—'}
+                {r.candidate || '—'}
               </TableCell>
-              <TableCell>{r.status || '—'}</TableCell>
-              <TableCell>{r.complete ? 'Yes' : 'No'}</TableCell>
-              <TableCell>{r.deepProfile ? 'Yes' : 'No'}</TableCell>
+              <TableCell>
+                <StatusBadge status={r.status} />
+              </TableCell>
+              <TableCell>
+                {r.profile ? (
+                  <a href={r.profile} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <Globe className="h-4 w-4" />
+                    Profile
+                  </a>
+                ) : '—'}
+              </TableCell>
             </TableRow>
           ))}
           {rows.length === 0 && !isLoading && (
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-muted-foreground">
+              <TableCell colSpan={3} className="text-center text-muted-foreground">
                 No results.
               </TableCell>
             </TableRow>

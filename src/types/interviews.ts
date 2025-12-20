@@ -1,16 +1,11 @@
 export type InterviewListItem = {
   id: string
-  professionalName: string
+  candidate: string
   status: string
-  complete: boolean
-  deepProfile: boolean
-  seniority?: string
+  profile: string
 }
 
-export type InterviewListResult = {
-  items: InterviewListItem[]
-  count: number
-}
+export type InterviewListResult = InterviewListItem[]
 
 export type InterviewPromptResult = {
   text: string

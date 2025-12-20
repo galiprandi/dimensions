@@ -24,12 +24,15 @@ type Stack = {
 
 type InterviewData = {
   candidate: string
+  photoURL: string
+  seniority: string
+  status: string
   statusLabel: string
   dimensions: Dimension[]
   stack: Stack[]
 }
 
-export function useInterview(id?: string): InterviewData | undefined {
+export function useInterview(id?: string): { data: InterviewData | undefined; isLoading: boolean } {
   const query = useQuery<{ data: InterviewDetailData | undefined }, Error>({
     queryKey: ['interview', 'data', id],
     enabled: Boolean(id),
@@ -43,10 +46,19 @@ export function useInterview(id?: string): InterviewData | undefined {
     refetchOnWindowFocus: false,
   })
 
-  if (!query.data?.data?.interview) return undefined
+  if (query.isLoading) {
+    return { data: undefined, isLoading: true }
+  }
 
-  return {
+  if (!query.data?.data?.interview) {
+    return { data: undefined, isLoading: false }
+  }
+
+  const data: InterviewData = {
     candidate: query.data.data.interview.professional?.fullName as string || '',
+    photoURL: query.data.data.interview.professional?.photoURL as string || '',
+    seniority: query.data.data.interview.professional?.seniority as string || '',
+    status: query.data.data.interview.status as string || '',
     statusLabel: (query.data.data.interview.status as string || '') === 'completed' ? 'Completada' : (query.data.data.interview.status as string || '') === 'pending' ? 'Pendiente' : (query.data.data.interview.status as string || '') || '—',
     dimensions: (query.data.data.interview.dimensionEvaluations || [])
       .filter(evaluation => evaluation.conclusion)
@@ -85,4 +97,6 @@ export function useInterview(id?: string): InterviewData | undefined {
         }
       })
   }
+
+  return { data, isLoading: false }
 }

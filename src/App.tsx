@@ -4,10 +4,9 @@ import { LoginForm } from './components/LoginForm'
 import { Modal } from './components/Modal'
 import { Toaster } from '@/components/ui/sonner'
 import { loginBackofficeUser } from './lib/auth'
-import { useInterviewsQuery } from './hooks/useInterviewsQuery'
+import { useInterviews } from './hooks/useInterviews'
 import { InterviewsView } from './views/InterviewsView'
-import { InterviewDetailView } from './views/InterviewDetailView'
-import type { InterviewListItem } from '@/types/interviews'
+import { InterviewDetail } from './views/InterviewDetail'
 
 function App() {
   const [loginIdentity, setLoginIdentity] = useState('')
@@ -17,9 +16,7 @@ function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [loggedInUserLabel, setLoggedInUserLabel] = useState('')
 
-  const { data: interviewsData, isLoading: isInterviewsLoading, error: interviewsError, refetch: refetchInterviews } =
-    useInterviewsQuery('')
-  const defaultOutputMessage = 'Ingresá un Interview ID y presioná "Buscar y extraer".'
+  const { refetch: refetchInterviews } = useInterviews()
 
   const getDisplayName = (identity: string) => {
     const trimmed = identity.trim()
@@ -75,9 +72,6 @@ function App() {
           path="/interviews"
           element={
             <InterviewsRoute
-              interviews={interviewsData?.items || []}
-              isInterviewsLoading={isInterviewsLoading}
-              interviewsError={interviewsError ? interviewsError.message : ''}
               userLabel={loggedInUserLabel}
               onLoginClick={() => setIsLoginOpen(true)}
             />
@@ -86,9 +80,7 @@ function App() {
         <Route
           path="/interviews/:id"
           element={
-            <InterviewDetailView
-              defaultOutputMessage={defaultOutputMessage}
-            />
+            <InterviewDetail />
           }
         />
         <Route path="*" element={<Navigate to="/interviews" replace />} />
@@ -100,22 +92,15 @@ function App() {
 export default App
 
 function InterviewsRoute(props: {
-  interviews: InterviewListItem[]
-  isInterviewsLoading: boolean
-  interviewsError: string
   userLabel: string
   onLoginClick: () => void
 }) {
   const navigate = useNavigate()
   return (
     <InterviewsView
-      interviews={props.interviews}
-      isInterviewsLoading={props.isInterviewsLoading}
-      interviewsError={props.interviewsError}
       userLabel={props.userLabel}
       onLoginClick={props.onLoginClick}
       onSelect={(id) => navigate(`/interviews/${id}`)}
     />
   )
 }
-
