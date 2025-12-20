@@ -1,11 +1,8 @@
 import { INTERVIEW_QUERY } from './graphql'
 import { buildPromptFromResponse } from './buildPrompt'
-import { applySessionCookieToDocument } from './session'
 
-export async function fetchInterviewPrompt(params: { interviewId: string; sessionCookie: string }) {
+export async function fetchInterviewPrompt(params: { interviewId: string }) {
   const id = params.interviewId.trim()
-
-  applySessionCookieToDocument(params.sessionCookie)
 
   const res = await fetch('/api/graphql', {
     method: 'POST',

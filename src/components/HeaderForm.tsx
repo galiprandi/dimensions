@@ -1,11 +1,9 @@
 type Props = {
   interviewId: string
-  sessionCookie: string
   isLoading: boolean
   canCopy: boolean
   copyStatus: string
   onChangeInterviewId: (value: string) => void
-  onChangeSessionCookie: (value: string) => void
   onFetch: () => void
   onCopy: () => void
 }
@@ -13,12 +11,10 @@ type Props = {
 export function HeaderForm(props: Props) {
   const {
     interviewId,
-    sessionCookie,
     isLoading,
     canCopy,
     copyStatus,
     onChangeInterviewId,
-    onChangeSessionCookie,
     onFetch,
     onCopy,
   } = props
@@ -29,23 +25,14 @@ export function HeaderForm(props: Props) {
         <label htmlFor="interviewId">Interview ID</label>
         <input
           id="interviewId"
+          className="input"
           placeholder="4f629281-5a3b-4572-ae66-cd800baa6b3f"
           value={interviewId}
           onChange={(e) => onChangeInterviewId(e.target.value)}
         />
       </div>
 
-      <div className="field">
-        <label htmlFor="session">keystonejs-session (opcional)</label>
-        <input
-          id="session"
-          placeholder="Pegá el token Fe26... o la cookie completa..."
-          value={sessionCookie}
-          onChange={(e) => onChangeSessionCookie(e.target.value)}
-        />
-      </div>
-
-      <button type="button" onClick={onFetch} disabled={isLoading}>
+      <button type="button" className="button" onClick={onFetch} disabled={isLoading}>
         <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path
             d="M21 12a9 9 0 1 1-2.64-6.36"
@@ -58,7 +45,7 @@ export function HeaderForm(props: Props) {
         {isLoading ? 'Buscando...' : 'GET'}
       </button>
 
-      <button type="button" className="secondary" onClick={onCopy} disabled={!canCopy}>
+      <button type="button" className="button secondary" onClick={onCopy} disabled={!canCopy}>
         <svg className="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 9h10v12H9V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
           <path
