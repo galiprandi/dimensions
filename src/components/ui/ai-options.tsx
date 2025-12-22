@@ -14,7 +14,7 @@ export function AiOptions({
   dimensions = [],
   stack = [],
 }: AiOptionsProps) {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const handleOpen = () => setIsOpen(true)
   const { isAiAvailable, isDownloading } = useAIConclusions({ interviewId })
   const effectiveOpen = isOpen || isDownloading

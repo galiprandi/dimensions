@@ -27,7 +27,13 @@ const STEP_LABELS: readonly StepLabel[] = [
   { key: 'ready', label: 'Conclusiones listas', activeOn: ['ready'] },
 ]
 
-export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
+export const useAIConclusions = ({
+  interviewId,
+  enabled = true,
+}: {
+  interviewId?: string
+  enabled?: boolean
+}) => {
   const { data: interview, isLoading: interviewLoading } = useInterview(interviewId)
   const queryClient = useQueryClient()
   const [isDownloading, setIsDownloading] = useState(false)
@@ -68,7 +74,7 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
 
   const availabilityQuery = useQuery({
     queryKey: ['AI', 'availability'],
-    enabled: true,
+    enabled,
     staleTime: Infinity,
     gcTime: Infinity,
     queryFn: async () => {
@@ -85,7 +91,7 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
 
   const profileSourceQuery = useQuery<string, Error>({
     queryKey: ['AI', 'profile-source', interviewId, interview?.profileUrl],
-    enabled: Boolean(interview?.profileUrl) && Boolean(availabilityQuery.data),
+    enabled: enabled && Boolean(interview?.profileUrl) && Boolean(availabilityQuery.data),
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,
@@ -111,7 +117,7 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
 
   const profileSummaryQuery = useQuery<string, Error>({
     queryKey: ['AI', 'profile-summary', interviewId, interview?.profileUrl],
-    enabled: Boolean(profileSourceQuery.data) && Boolean(availabilityQuery.data),
+    enabled: enabled && Boolean(profileSourceQuery.data) && Boolean(availabilityQuery.data),
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,
@@ -165,7 +171,7 @@ Formato de salida (máx. 6 líneas):
 
   const conclusionsQuery = useQuery<AiConclusionsResult, Error>({
     queryKey: ['AI', 'conclusions', interviewId],
-    enabled: Boolean(prompt) && Boolean(availabilityQuery.data),
+    enabled: enabled && Boolean(prompt) && Boolean(availabilityQuery.data),
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,

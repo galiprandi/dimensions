@@ -13,6 +13,7 @@ type AiConclusionsProps = {
 export const AiConclusions = ({ interviewId, isOpen, setIsOpen }: AiConclusionsProps) => {
   const { data, status, isAiAvailable, isDownloading, generate, isGenerating } = useAIConclusions({
     interviewId,
+    enabled: isOpen,
   })
 
   const showDownload = isDownloading
