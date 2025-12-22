@@ -213,7 +213,7 @@ Formato de salida (máx. 6 líneas):
   }, [status])
 
   return {
-    isAiAvailable: false, //Boolean(availabilityQuery.data),
+    isAiAvailable: Boolean(availabilityQuery.data),
     profileSource: profileSourceQuery.data,
     profileSummary: profileSummaryQuery.data,
     prompt,

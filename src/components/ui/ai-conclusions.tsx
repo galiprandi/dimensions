@@ -75,7 +75,7 @@ export const AiConclusions = ({ interviewId, isOpen, setIsOpen }: AiConclusionsP
         </DialogHeader>
 
         {!isAiAvailable ? (
-          <NotAvailable />
+          <AvailabilityRequirements />
         ) : !hasConclusions ? (
           <WorkingProgress stepLabels={STEP_LABELS} currentStatus={status} />
         ) : (
@@ -118,7 +118,7 @@ const WorkingProgress = ({ stepLabels, currentStatus }: WorkingProgressProps) =>
   </div>
 )
 
-const NotAvailable = () => (
+const AvailabilityRequirements = () => (
   <div className="space-y-4 text-sm text-muted-foreground">
     <ol className="list-decimal pl-5 space-y-2">
       <li>
