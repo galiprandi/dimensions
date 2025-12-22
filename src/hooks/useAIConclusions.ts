@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { buildJsonPrompt, stripMarkdownJson } from '@/utils/ai'
 import type { AiConclusionItem } from '@/types/ai'
+import { PROFILE_ENDPOINT } from '@/lib/api'
 import { useInterview } from './useInterview'
-
-const PROFILE_ENDPOINT = '/api/profile-summary'
 
 export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
   const { data: interview, isLoading: interviewLoading } = useInterview(interviewId)

@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { PROFILE_ENDPOINT } from '@/lib/api'
 
 type LanguageModelType = {
   availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
@@ -6,7 +7,9 @@ type LanguageModelType = {
     temperature?: number
     topK?: number
     signal?: AbortSignal
-    monitor?: (m: { addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void }) => void
+    monitor?: (m: {
+      addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void
+    }) => void
     initialPrompts?: Array<{
       role: 'system' | 'user' | 'assistant'
       content: string
@@ -53,7 +56,8 @@ type UseProfileInsightOptions = {
 
 export function useProfileInsight(options: UseProfileInsightOptions) {
   const { id, profileUrl, roleLabel, targetSeniority, onDownloadProgress, enabled } = options
-  const lm = options.languageModel || (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+  const lm =
+    options.languageModel || (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
 
   const query = useQuery<ProfileInsight, Error>({
     queryKey: ['AI', 'profile-insight', id, profileUrl],
@@ -65,7 +69,7 @@ export function useProfileInsight(options: UseProfileInsightOptions) {
       if (!profileUrl) throw new Error('No hay URL de perfil')
       if (!lm) throw new Error('LanguageModel no está disponible en este dispositivo.')
 
-      const endpoint = '/api/profile-summary'
+      const endpoint = PROFILE_ENDPOINT || '/api/profile-summary'
       const proxied = await fetch(`${endpoint}?url=${encodeURIComponent(profileUrl)}`, {
         method: 'GET',
         headers: { accept: 'application/json' },
@@ -75,14 +79,15 @@ export function useProfileInsight(options: UseProfileInsightOptions) {
         throw new Error(`No se pudo obtener el perfil (proxy) (${proxied.status})`)
       }
 
-      const proxyJson = await proxied.json().catch(() => ({} as { text?: string; error?: string }))
+      const proxyJson = await proxied.json().catch(() => ({}) as { text?: string; error?: string })
       if (proxyJson.error) throw new Error(proxyJson.error)
 
       const profileText = typeof proxyJson.text === 'string' ? proxyJson.text : ''
       if (!profileText) throw new Error('El perfil no devolvió contenido utilizable.')
 
       const availability = await lm.availability({ languages: ['es'] })
-      if (availability === 'no') throw new Error('La API de Prompt no es compatible con este dispositivo.')
+      if (availability === 'no')
+        throw new Error('La API de Prompt no es compatible con este dispositivo.')
 
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
       let session

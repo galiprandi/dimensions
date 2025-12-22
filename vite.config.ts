@@ -5,7 +5,7 @@ import path from 'path'
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const workerTarget = env.VITE_WORKER_URL || 'https://interviews.galiprandi.workers.dev'
+  const workerTarget = env.VITE_API_URL || 'https://interviews.galiprandi.workers.dev'
 
   return {
     // Usamos base en build (deploy bajo /dimensions/) pero evitamos prefijo en dev para no romper los refresh.

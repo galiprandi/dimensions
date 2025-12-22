@@ -31,7 +31,7 @@ function normalizeEnvUrl(raw?: string) {
 
   try {
     // Validate URL; if invalid, fall back later
-     
+
     const url = new URL(candidate)
     // Ensure path ends with /api/graphql
     if (!url.pathname || url.pathname === '/' || url.pathname === '') {
@@ -45,6 +45,18 @@ function normalizeEnvUrl(raw?: string) {
 }
 
 export const API_URL = detectApiUrl()
+
+export const PROFILE_ENDPOINT = (() => {
+  if (API_URL.startsWith('http')) {
+    try {
+      const url = new URL(API_URL)
+      return `${url.origin}/api/profile-summary`
+    } catch {
+      return '/api/profile-summary'
+    }
+  }
+  return '/api/profile-summary'
+})()
 
 export const apiClient = axios.create({
   baseURL: API_URL,
