@@ -73,7 +73,7 @@ Para mostrar notificaciones tipo toast (información, éxito, error), usa la lib
 Importa en el componente donde lo necesites:
 
 ```typescript
-import { toast } from "sonner"
+import { toast } from 'sonner'
 ```
 
 Luego, usa los siguientes métodos:
@@ -91,12 +91,14 @@ El componente `Toaster` ya está agregado en `App.tsx`, por lo que las notificac
 Para evitar errores al consultar la API GraphQL, documentar aquí la estructura correcta de los tipos:
 
 #### Interview Type
+
 - `seniority` **NO** está directamente en `Interview`
 - `seniority` está anidado en `professional.seniority`
 - `photoURL` está anidado en `professional.photoURL`
 - `fullName` está anidado en `professional.fullName`
 
 **Query correcta para interviews list:**
+
 ```graphql
 query ($take: Int!, $skip: Int!) {
   items: interviews(take: $take, skip: $skip) {
@@ -113,6 +115,7 @@ query ($take: Int!, $skip: Int!) {
 ```
 
 **Query correcta para interview detail:**
+
 ```graphql
 query Interview($where: InterviewWhereUniqueInput!) {
   interview(where: $where) {
@@ -139,3 +142,52 @@ query Interview($where: InterviewWhereUniqueInput!) {
   - Reenviar la cookie de sesión y conservar `set-cookie`.
   - Reescribir `set-cookie` a `SameSite=None; Secure` para que el navegador envíe la sesión en `github.io`.
 - Si `VITE_API_URL` está mal escrita o el Worker no reenvía cookies/SameSite, las queries regresan vacías (`items: []`).
+
+### Inventario de entidades (respuesta Interview más completa)
+
+Consulta base (ya probada): `Interview(where: { id })` devuelve:
+
+- `interview`:
+  - `status`
+  - `conclusion`
+  - `professional`:
+    - `id`
+    - `fullName`
+    - `photoURL`
+    - `seniority`
+  - `subdimensionsToEvaluate[]`:
+    - `id`
+    - `type` (`required`, ...)
+    - `subdimension`:
+      - `id`
+      - `name`
+      - `dimension`:
+        - `id`
+        - `name`
+        - `technologyFocus` (`backend`, `general`, etc.)
+  - `topicsToEvaluate[]`:
+    - `id`
+    - `type`
+    - `topic`:
+      - `id`
+      - `name`
+      - `mainStack` (`id`, `name`)
+  - Evaluaciones:
+    - `subdimensionEvaluations[]`: `id`, `score`, `subdimension { id }`
+    - `dimensionEvaluations[]`: `id`, `conclusion`, `dimension { id }`
+    - `topicsEvaluations[]`: `id`, `score`, `topic { id }`
+    - `mainStackEvaluations[]`: `id`, `mainStack { id }`, `conclusion`, `experienceInYears`
+
+- `dimensions[]`:
+  - `id`, `name`, `technologyFocus`
+  - `subdimensions[]`: `id`, `name`, `description`, `questions`
+
+- `mainStacks[]`:
+  - `id`, `name`
+  - `topics[]`: `id`, `name`, `description`, `questions`
+
+Notas:
+
+- En la respuesta de muestra `seniority` viene `null`.
+- Los textos de `description` y `questions` pueden ser extensos (markdown).
+- `technologyFocus` distingue stack (p.ej., `backend`, `general`).
