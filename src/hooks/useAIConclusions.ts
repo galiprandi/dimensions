@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { buildJsonPrompt, stripMarkdownJson } from '@/utils/ai'
 import type { AiConclusionItem } from '@/types/ai'
@@ -9,6 +9,8 @@ const PROFILE_ENDPOINT = '/api/profile-summary'
 export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
   const { data: interview, isLoading: interviewLoading } = useInterview(interviewId)
   const queryClient = useQueryClient()
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
 
   const availabilityQuery = useQuery({
     queryKey: ['AI', 'availability'],
@@ -66,10 +68,14 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
       if (availability === 'no')
         throw new Error('La API de Prompt no es compatible con este dispositivo.')
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
-      const session =
-        availability === 'readily'
-          ? await lm.create({ expectedOutputs })
-          : await lm.create({ expectedOutputs })
+      const session = await lm.create({
+        expectedOutputs,
+        monitor: (m) =>
+          m.addEventListener('downloadprogress', (e: { loaded: number }) => {
+            setIsDownloading(true)
+            setDownloadProgress(e.loaded)
+          }),
+      })
 
       const prompt = `
 Eres un revisor técnico. A partir del perfil público extraído, redacta una reseña breve en español.
@@ -90,8 +96,12 @@ Formato de salida (máx. 6 líneas):
 6) Riesgos o dudas
 `.trim()
 
-      const result = await session.prompt(prompt)
-      return result.trim()
+      try {
+        const result = await session.prompt(prompt)
+        return result.trim()
+      } finally {
+        setIsDownloading(false)
+      }
     },
   })
 
@@ -118,12 +128,17 @@ Formato de salida (máx. 6 líneas):
       if (availability === 'no')
         throw new Error('La API de Prompt no es compatible con este dispositivo.')
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
-      const session =
-        availability === 'readily'
-          ? await lm.create({ expectedOutputs })
-          : await lm.create({ expectedOutputs })
+      const session = await lm.create({
+        expectedOutputs,
+        monitor: (m) =>
+          m.addEventListener('downloadprogress', (e: { loaded: number }) => {
+            setIsDownloading(true)
+            setDownloadProgress(e.loaded)
+          }),
+      })
 
       const rawResult = await session.prompt(prompt)
+      setIsDownloading(false)
       const clean = stripMarkdownJson(rawResult)
 
       let parsed: AiConclusionItem[] = []
@@ -222,6 +237,8 @@ Formato de salida (máx. 6 líneas):
     status,
     generate,
     isGenerating,
+    isDownloading,
+    downloadProgress,
   }
 }
 

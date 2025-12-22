@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { Copy, Check } from 'lucide-react'
+import { AppDialog } from '@/components/ui/app-dialog'
+import { Copy, Check, FileDiff } from 'lucide-react'
 import { toast } from 'sonner'
 import { TopicsDialog } from './TopicsDialog'
 import { API_URL } from '@/lib/api'
@@ -28,12 +29,20 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)
   const [copied, setCopied] = useState(false)
+  const [isCompareOpen, setIsCompareOpen] = useState(false)
 
   const queryClient = useQueryClient()
 
   const evaluationId = item.id || item.evaluationId || ''
   const isStack = item.isStack ?? Boolean(item.stackId && !item.dimensionId)
   const topics = item.topics ?? []
+  const trimmedCurrent = (item.currentConclusion ?? '').trim()
+
+  const hasDifference = useMemo(() => {
+    const trimmedLocal = localConclusion.trim()
+    if (!trimmedCurrent) return false
+    return trimmedLocal !== trimmedCurrent
+  }, [localConclusion, trimmedCurrent])
 
   const mutation = useMutation({
     mutationFn: async (variables: { id: string; conclusion: string }) => {
@@ -114,12 +123,50 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
           {mode !== 'editOnly' && topics.length > 0 && (
             <TopicsDialog topics={topics} title="Tópicos" />
           )}
+          <AppDialog
+            open={isCompareOpen}
+            onOpenChange={setIsCompareOpen}
+            title="Comparar conclusiones"
+            size="md"
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                disabled={!hasDifference}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                aria-label="Comparar conclusiones"
+                title="Comparar conclusión actual vs propuesta del modelo"
+              >
+                <FileDiff className="h-4 w-4" />
+              </Button>
+            }
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Conclusión actual</p>
+                <div className="rounded-md border bg-muted/60 p-3 text-sm whitespace-pre-wrap">
+                  {trimmedCurrent || (
+                    <span className="text-muted-foreground/60">Sin conclusión guardada</span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">Conclusión del modelo</p>
+                <div className="rounded-md border bg-background p-3 text-sm whitespace-pre-wrap">
+                  {localConclusion.trim() || (
+                    <span className="text-muted-foreground/60">Sin propuesta</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </AppDialog>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleCopy}
             disabled={!localConclusion}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            title="Copiar conclusión generada"
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>

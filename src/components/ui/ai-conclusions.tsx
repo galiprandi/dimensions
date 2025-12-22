@@ -1,12 +1,6 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, X, Check } from 'lucide-react'
+import { RotateCcw, Check } from 'lucide-react'
+import { AppDialog } from '@/components/ui/app-dialog'
 import { useAIConclusions } from '@/hooks/useAIConclusions'
 import { AiConclusionsEditor } from '../AiConclusionsEditor'
 
@@ -41,48 +35,43 @@ type AiConclusionsProps = {
 }
 
 export const AiConclusions = ({ interviewId, isOpen, setIsOpen }: AiConclusionsProps) => {
-  const { data, generate, isGenerating, status, isAiAvailable } = useAIConclusions({ interviewId })
+  const { data, generate, isGenerating, status, isAiAvailable, isDownloading, downloadProgress } =
+    useAIConclusions({ interviewId })
 
   const hasConclusions = status === 'ready' && Boolean(data)
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild />
-      <DialogContent
-        className="max-w-3xl max-h-[80vh] overflow-y-auto"
-        aria-describedby="ai-progress-desc"
-      >
-        <DialogHeader className="flex flex-row items-center justify-between gap-4">
-          <DialogTitle>
-            {!isAiAvailable
-              ? 'La generación con IA no está disponible.'
-              : hasConclusions
-                ? 'Conclusiones generadas'
-                : 'Generando conclusiones con IA'}
-          </DialogTitle>
-
-          <div className="flex items-center gap-2">
-            {isAiAvailable && (
-              <Button variant="outline" size="sm" onClick={generate} disabled={isGenerating}>
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Generar
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </DialogHeader>
-
-        {!isAiAvailable ? (
-          <AvailabilityRequirements />
-        ) : !hasConclusions ? (
-          <WorkingProgress stepLabels={STEP_LABELS} currentStatus={status} />
-        ) : (
-          <AiConclusionsEditor interviewId={interviewId} />
-        )}
-      </DialogContent>
-    </Dialog>
+    <AppDialog
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      onClose={() => setIsOpen(false)}
+      title={
+        !isAiAvailable
+          ? 'La generación con IA no está disponible.'
+          : hasConclusions
+            ? 'Conclusiones generadas'
+            : 'Generando conclusiones con IA'
+      }
+      size="lg"
+      actions={
+        isAiAvailable ? (
+          <Button variant="outline" size="sm" onClick={generate} disabled={isGenerating}>
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Generar
+          </Button>
+        ) : null
+      }
+    >
+      {!isAiAvailable ? (
+        <AvailabilityRequirements />
+      ) : isDownloading ? (
+        <DownloadProgress progress={downloadProgress} />
+      ) : !hasConclusions ? (
+        <WorkingProgress stepLabels={STEP_LABELS} currentStatus={status} />
+      ) : (
+        <AiConclusionsEditor interviewId={interviewId} />
+      )}
+    </AppDialog>
   )
 }
 
@@ -117,6 +106,26 @@ const WorkingProgress = ({ stepLabels, currentStatus }: WorkingProgressProps) =>
     })}
   </div>
 )
+
+const DownloadProgress = ({ progress }: { progress: number | null }) => {
+  const pct = progress !== null ? Math.min(100, Math.max(0, Math.round(progress * 100))) : null
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="text-base font-medium text-foreground">Descargando modelo de IA…</p>
+      <div className="w-full rounded bg-muted h-2 overflow-hidden">
+        <div
+          className="h-2 bg-blue-500 transition-all"
+          style={{ width: pct !== null ? `${pct}%` : '100%', opacity: pct !== null ? 1 : 0.4 }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {pct !== null
+          ? `Progreso: ${pct}% (mantén la pestaña abierta, puede tardar un momento)`
+          : 'Preparando descarga…'}
+      </p>
+    </div>
+  )
+}
 
 const AvailabilityRequirements = () => (
   <div className="space-y-4 text-sm text-muted-foreground">
