@@ -35,6 +35,11 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
   const [modelReady, setModelReady] = useState(false)
   const sessionRef = useRef<LanguageModelSession | null>(null)
   const sessionInterviewIdRef = useRef<string | undefined>(undefined)
+  const resetSessionState = () => {
+    setModelReady(false)
+    setIsDownloading(false)
+    setDownloadProgress(null)
+  }
 
   const getOrCreateSession = async (expectedOutputs: { type: 'text'; languages: string[] }[]) => {
     const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
@@ -45,9 +50,7 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
 
     sessionInterviewIdRef.current = interviewId
     sessionRef.current = null
-    setModelReady(false)
-    setIsDownloading(false)
-    setDownloadProgress(null)
+    resetSessionState()
 
     const session = await lm.create({
       expectedOutputs,
@@ -140,10 +143,13 @@ Formato de salida (máx. 6 líneas):
 6) Riesgos o dudas
 `.trim()
 
-      const result = await session.prompt(prompt)
-      setIsDownloading(false)
-      setModelReady(true)
-      return result.trim()
+      try {
+        const result = await session.prompt(prompt)
+        setModelReady(true)
+        return result.trim()
+      } finally {
+        setIsDownloading(false)
+      }
     },
   })
 
@@ -164,34 +170,48 @@ Formato de salida (máx. 6 líneas):
     gcTime: Infinity,
     retry: false,
     queryFn: async () => {
-      const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
-      if (!lm) throw new Error('LanguageModel no está disponible.')
-      const availability = await lm.availability({ languages: ['es'] })
-      if (availability === 'no')
-        throw new Error('La API de Prompt no es compatible con este dispositivo.')
-      const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
-      const session = await getOrCreateSession(expectedOutputs)
-
-      const rawResult = await session.prompt(prompt)
-      setIsDownloading(false)
-      setModelReady(true)
-      const clean = stripMarkdownJson(rawResult)
-
-      let parsed: AiConclusionItem[] = []
       try {
-        const json = JSON.parse(clean)
-        parsed = Array.isArray(json?.items) ? json.items : []
-      } catch {
-        parsed = []
-      }
+        const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+        if (!lm) throw new Error('LanguageModel no está disponible.')
+        const availability = await lm.availability({ languages: ['es'] })
+        if (availability === 'no')
+          throw new Error('La API de Prompt no es compatible con este dispositivo.')
+        const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
+        const session = await getOrCreateSession(expectedOutputs)
 
-      return {
-        raw: rawResult,
-        parsed,
-        prompt,
+        const rawResult = await session.prompt(prompt)
+        setModelReady(true)
+        const clean = stripMarkdownJson(rawResult)
+
+        let parsed: AiConclusionItem[] = []
+        try {
+          const json = JSON.parse(clean)
+          parsed = Array.isArray(json?.items) ? json.items : []
+        } catch {
+          parsed = []
+        }
+
+        return {
+          raw: rawResult,
+          parsed,
+          prompt,
+        }
+      } catch (error) {
+        setModelReady(false)
+        throw error
+      } finally {
+        setIsDownloading(false)
       }
     },
   })
+
+  // Limpieza al desmontar
+  useEffect(() => {
+    return () => {
+      sessionRef.current?.destroy?.()
+      sessionRef.current = null
+    }
+  }, [])
 
   const dimensions: NormalizedConclusionItem[] = useMemo(() => {
     const parsed = conclusionsQuery.data?.parsed
