@@ -8,9 +8,15 @@ export function InterviewDetail() {
   const navigate = useNavigate()
 
   const { data: interviewData, isLoading } = useInterview(id)
-  const { candidate = '', status = '', dimensions = [], stack = [], photoURL = '', seniority = '', profileUrl = '' } = interviewData || {}
-  
-  
+  const {
+    candidate = '',
+    status = '',
+    dimensions = [],
+    stack = [],
+    photoURL = '',
+    seniority = '',
+  } = interviewData || {}
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
@@ -24,9 +30,7 @@ export function InterviewDetail() {
           dimensions={dimensions}
           stack={stack}
           interviewId={id}
-          profileUrl={profileUrl}
         />
-
 
         <EvaluationsList dimensions={dimensions || []} stacks={stack || []} isLoading={isLoading} />
       </div>

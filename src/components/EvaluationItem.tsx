@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { AppDialog } from '@/components/ui/app-dialog'
+import { ButtonIcon } from '@/components/ui/button-icon'
 import { Copy, Check, FileDiff } from 'lucide-react'
 import { toast } from 'sonner'
 import { TopicsDialog } from './TopicsDialog'
@@ -123,53 +123,21 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
           {mode !== 'editOnly' && topics.length > 0 && (
             <TopicsDialog topics={topics} title="Tópicos" />
           )}
-          <AppDialog
+          <CompareDialog
             open={isCompareOpen}
             onOpenChange={setIsCompareOpen}
-            title="Comparar conclusiones"
-            size="md"
-            trigger={
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={!hasDifference}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-50"
-                aria-label="Comparar conclusiones"
-                title="Comparar conclusión actual vs propuesta del modelo"
-              >
-                <FileDiff className="h-4 w-4" />
-              </Button>
-            }
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Conclusión actual</p>
-                <div className="rounded-md border bg-muted/60 p-3 text-sm whitespace-pre-wrap">
-                  {trimmedCurrent || (
-                    <span className="text-muted-foreground/60">Sin conclusión guardada</span>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Conclusión del modelo</p>
-                <div className="rounded-md border bg-background p-3 text-sm whitespace-pre-wrap">
-                  {localConclusion.trim() || (
-                    <span className="text-muted-foreground/60">Sin propuesta</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </AppDialog>
-          <Button
-            variant="ghost"
-            size="icon"
+            hasDifference={hasDifference}
+            triggerClassName="h-8 w-8 text-muted-foreground hover:text-foreground disabled:opacity-50"
+            trimmedCurrent={trimmedCurrent}
+            localConclusion={localConclusion}
+          />
+          <ButtonIcon
             onClick={handleCopy}
             disabled={!localConclusion}
             className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            title="Copiar conclusión generada"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </Button>
+            tooltip="Copiar conclusión generada"
+            icon={copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          />
           {mode === 'toggle' ? (
             <>
               <Label
@@ -185,7 +153,8 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
               />
             </>
           ) : (
-            <Button
+            <ButtonIcon
+              variant="success"
               size="icon"
               onClick={handleSave}
               disabled={
@@ -193,11 +162,10 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
                 localConclusion.trim().length === 0 ||
                 localConclusion.trim() === (item.currentConclusion?.trim() ?? '')
               }
-              aria-label="Guardar conclusión"
-              className="h-9 w-9 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-            >
-              <Check className="h-4 w-4" />
-            </Button>
+              className="h-9 w-9"
+              tooltip="Guardar conclusión"
+              icon={<Check className="h-4 w-4" />}
+            />
           )}
         </div>
       </div>
@@ -236,5 +204,62 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
         )}
       </div>
     </div>
+  )
+}
+
+type CompareDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  hasDifference: boolean
+  triggerClassName?: string
+  trimmedCurrent: string
+  localConclusion: string
+}
+
+function CompareDialog({
+  open,
+  onOpenChange,
+  hasDifference,
+  triggerClassName,
+  trimmedCurrent,
+  localConclusion,
+}: CompareDialogProps) {
+  return (
+    <AppDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Comparar conclusiones"
+      size="md"
+      trigger={
+        <ButtonIcon
+          variant="ghost"
+          size="icon"
+          disabled={!hasDifference}
+          className={triggerClassName}
+          aria-label="Comparar conclusiones"
+          tooltip="Comparar conclusión actual vs propuesta del modelo"
+          icon={<FileDiff className="h-4 w-4" />}
+        />
+      }
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Conclusión actual</p>
+          <div className="rounded-md border bg-muted/60 p-3 text-sm whitespace-pre-wrap">
+            {trimmedCurrent || (
+              <span className="text-muted-foreground/60">Sin conclusión guardada</span>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Conclusión del modelo</p>
+          <div className="rounded-md border bg-background p-3 text-sm whitespace-pre-wrap">
+            {localConclusion.trim() || (
+              <span className="text-muted-foreground/60">Sin propuesta</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </AppDialog>
   )
 }
