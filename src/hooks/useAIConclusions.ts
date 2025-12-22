@@ -1,15 +1,67 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { buildJsonPrompt, stripMarkdownJson } from '@/utils/ai'
 import type { AiConclusionItem } from '@/types/ai'
 import { PROFILE_ENDPOINT } from '@/lib/api'
 import { useInterview } from './useInterview'
 
+const STEP_LABELS: readonly StepLabel[] = [
+  { key: 'loading-interview', label: 'Cargando entrevista', activeOn: ['loading-interview'] },
+  {
+    key: 'checking-availability',
+    label: 'Verificando disponibilidad de IA',
+    activeOn: ['checking-availability'],
+  },
+  { key: 'fetching-profile', label: 'Obteniendo perfil público', activeOn: ['fetching-profile'] },
+  {
+    key: 'summarizing-profile',
+    label: 'Resumiendo perfil con IA',
+    activeOn: ['summarizing-profile'],
+  },
+  { key: 'generating-prompt', label: 'Generando prompt', activeOn: ['generating-prompt'] },
+  {
+    key: 'generating-conclusion',
+    label: 'Generando conclusiones',
+    activeOn: ['generating-conclusion'],
+  },
+  { key: 'ready', label: 'Conclusiones listas', activeOn: ['ready'] },
+]
+
 export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
   const { data: interview, isLoading: interviewLoading } = useInterview(interviewId)
   const queryClient = useQueryClient()
   const [isDownloading, setIsDownloading] = useState(false)
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null)
+  const [modelReady, setModelReady] = useState(false)
+  const sessionRef = useRef<LanguageModelSession | null>(null)
+  const sessionInterviewIdRef = useRef<string | undefined>(undefined)
+
+  const getOrCreateSession = async (expectedOutputs: { type: 'text'; languages: string[] }[]) => {
+    const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+    if (!lm) throw new Error('LanguageModel no está disponible.')
+
+    const sameInterview = sessionInterviewIdRef.current === interviewId
+    if (sessionRef.current && sameInterview) return sessionRef.current
+
+    sessionInterviewIdRef.current = interviewId
+    sessionRef.current = null
+    setModelReady(false)
+    setIsDownloading(false)
+    setDownloadProgress(null)
+
+    const session = await lm.create({
+      expectedOutputs,
+      monitor: (m) =>
+        m.addEventListener('downloadprogress', (e: { loaded: number }) => {
+          if (!modelReady) {
+            setIsDownloading(true)
+            setDownloadProgress(e.loaded)
+          }
+        }),
+    })
+    sessionRef.current = session
+    return session
+  }
 
   const availabilityQuery = useQuery({
     queryKey: ['AI', 'availability'],
@@ -67,14 +119,7 @@ export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
       if (availability === 'no')
         throw new Error('La API de Prompt no es compatible con este dispositivo.')
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
-      const session = await lm.create({
-        expectedOutputs,
-        monitor: (m) =>
-          m.addEventListener('downloadprogress', (e: { loaded: number }) => {
-            setIsDownloading(true)
-            setDownloadProgress(e.loaded)
-          }),
-      })
+      const session = await getOrCreateSession(expectedOutputs)
 
       const prompt = `
 Eres un revisor técnico. A partir del perfil público extraído, redacta una reseña breve en español.
@@ -95,12 +140,10 @@ Formato de salida (máx. 6 líneas):
 6) Riesgos o dudas
 `.trim()
 
-      try {
-        const result = await session.prompt(prompt)
-        return result.trim()
-      } finally {
-        setIsDownloading(false)
-      }
+      const result = await session.prompt(prompt)
+      setIsDownloading(false)
+      setModelReady(true)
+      return result.trim()
     },
   })
 
@@ -127,17 +170,11 @@ Formato de salida (máx. 6 líneas):
       if (availability === 'no')
         throw new Error('La API de Prompt no es compatible con este dispositivo.')
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
-      const session = await lm.create({
-        expectedOutputs,
-        monitor: (m) =>
-          m.addEventListener('downloadprogress', (e: { loaded: number }) => {
-            setIsDownloading(true)
-            setDownloadProgress(e.loaded)
-          }),
-      })
+      const session = await getOrCreateSession(expectedOutputs)
 
       const rawResult = await session.prompt(prompt)
       setIsDownloading(false)
+      setModelReady(true)
       const clean = stripMarkdownJson(rawResult)
 
       let parsed: AiConclusionItem[] = []
@@ -240,6 +277,7 @@ Formato de salida (máx. 6 líneas):
     isGenerating,
     isDownloading,
     downloadProgress,
+    STEP_LABELS,
   }
 }
 
@@ -300,3 +338,5 @@ type StepStatus =
   | 'generating-prompt'
   | 'generating-conclusion'
   | 'ready'
+type LanguageModelSession = Awaited<ReturnType<LanguageModelType['create']>>
+type StepLabel = { key: string; label: string; activeOn: readonly string[] }

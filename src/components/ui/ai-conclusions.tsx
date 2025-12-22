@@ -6,30 +6,6 @@ import { AiConclusionsEditor } from '../AiConclusionsEditor'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 
-type StepLabel = { key: string; label: string; activeOn: readonly string[] }
-
-const STEP_LABELS: readonly StepLabel[] = [
-  { key: 'loading-interview', label: 'Cargando entrevista', activeOn: ['loading-interview'] },
-  {
-    key: 'checking-availability',
-    label: 'Verificando disponibilidad de IA',
-    activeOn: ['checking-availability'],
-  },
-  { key: 'fetching-profile', label: 'Obteniendo perfil público', activeOn: ['fetching-profile'] },
-  {
-    key: 'summarizing-profile',
-    label: 'Resumiendo perfil con IA',
-    activeOn: ['summarizing-profile'],
-  },
-  { key: 'generating-prompt', label: 'Generando prompt', activeOn: ['generating-prompt'] },
-  {
-    key: 'generating-conclusion',
-    label: 'Generando conclusiones',
-    activeOn: ['generating-conclusion'],
-  },
-  { key: 'ready', label: 'Conclusiones listas', activeOn: ['ready'] },
-]
-
 type AiConclusionsProps = {
   interviewId: string
   isOpen: boolean
@@ -143,7 +119,7 @@ const ProgressDialog = ({
   setIsOpen,
   interviewId,
 }: BaseDialogProps & { interviewId: string }) => {
-  const { status } = useAIConclusions({ interviewId })
+  const { status, STEP_LABELS } = useAIConclusions({ interviewId })
   return (
     <AppDialog
       open={isOpen}
