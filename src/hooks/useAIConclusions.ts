@@ -1,35 +1,284 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { useInterview } from "./useInterview";
+import { useEffect, useMemo } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { buildJsonPrompt, stripMarkdownJson } from '@/utils/ai'
+import type { AiConclusionItem } from '@/types/ai'
+import { useInterview } from './useInterview'
 
-export const useAIConclusions=({interviewId}: { interviewId?: string }) =>{
-    const queryKey = ['AI', 'Conclusions', interviewId];
-    const [_status, setStatus] = useState<StepStatus>('pending');
+const PROFILE_ENDPOINT = '/api/profile-summary'
 
+export const useAIConclusions = ({ interviewId }: { interviewId?: string }) => {
+  const { data: interview, isLoading: interviewLoading } = useInterview(interviewId)
+  const queryClient = useQueryClient()
 
-    const { data: interview, isLoading: interviewLoading } = useInterview(interviewId)
-    
-    useEffect(() => {
-        if (interviewLoading) {
-            setStatus('loading-interview');
+  const availabilityQuery = useQuery({
+    queryKey: ['AI', 'availability'],
+    enabled: true,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    queryFn: async () => {
+      const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+      if (!lm) return false
+      try {
+        const availability = await lm.availability({ languages: ['es'] })
+        return availability !== 'no'
+      } catch {
+        return false
+      }
+    },
+  })
+
+  const profileSourceQuery = useQuery<string, Error>({
+    queryKey: ['AI', 'profile-source', interviewId, interview?.profileUrl],
+    enabled: Boolean(interview?.profileUrl) && Boolean(availabilityQuery.data),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      if (!interview?.profileUrl) throw new Error('No hay URL de perfil')
+      const proxied = await fetch(
+        `${PROFILE_ENDPOINT}?url=${encodeURIComponent(interview.profileUrl)}`,
+        {
+          method: 'GET',
+          headers: { accept: 'application/json' },
         }
-    }, [interviewLoading]);
+      )
+      if (!proxied.ok) {
+        throw new Error(`No se pudo obtener el perfil (proxy) (${proxied.status})`)
+      }
+      const proxyJson = await proxied.json().catch(() => ({}) as { text?: string; error?: string })
+      if (proxyJson.error) throw new Error(proxyJson.error)
+      const profileText = typeof proxyJson.text === 'string' ? proxyJson.text : ''
+      if (!profileText) throw new Error('El perfil no devolvió contenido utilizable.')
+      return profileText
+    },
+  })
 
-    const {data, status:_queryStatus, ...rest} = useQuery({
-        queryKey,
-        queryFn: () => queryFn(interviewId, setStatus),
-        enabled: !!interviewId,
-    });
+  const profileSummaryQuery = useQuery<string, Error>({
+    queryKey: ['AI', 'profile-summary', interviewId, interview?.profileUrl],
+    enabled: Boolean(profileSourceQuery.data) && Boolean(availabilityQuery.data),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+      if (!lm) throw new Error('LanguageModel no está disponible.')
+      const availability = await lm.availability({ languages: ['es'] })
+      if (availability === 'no')
+        throw new Error('La API de Prompt no es compatible con este dispositivo.')
+      const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
+      const session =
+        availability === 'readily'
+          ? await lm.create({ expectedOutputs })
+          : await lm.create({ expectedOutputs })
 
-    return {data, queryKey, status: _queryStatus, ...rest};
+      const prompt = `
+Eres un revisor técnico. A partir del perfil público extraído, redacta una reseña breve en español.
+- Enfócate en stack, lenguajes, frameworks, años/tiempo de experiencia y seniority percibido.
+- Si no hay datos, indica que la información es insuficiente.
+- No inventes ni agregues datos no presentes.
+
+Contexto:
+- Fuente: ${interview?.profileUrl || 'N/D'}
+- Texto del perfil (recortado): """${profileSourceQuery.data?.slice(0, 12000) || ''}"""
+
+Formato de salida (máx. 6 líneas):
+1) Stack principal y lenguajes
+2) Frameworks/tecnologías
+3) Experiencia/tiempo (si aparece)
+4) Seniority percibido (si aparece)
+5) Señales destacadas
+6) Riesgos o dudas
+`.trim()
+
+      const result = await session.prompt(prompt)
+      return result.trim()
+    },
+  })
+
+  const prompt = useMemo(() => {
+    if (!interview || !profileSummaryQuery.data) return ''
+    return buildJsonPrompt(
+      interview.candidate,
+      interview.dimensions,
+      interview.stack,
+      profileSummaryQuery.data
+    )
+  }, [interview, profileSummaryQuery.data])
+
+  const conclusionsQuery = useQuery<AiConclusionsResult, Error>({
+    queryKey: ['AI', 'conclusions', interviewId],
+    enabled: Boolean(prompt) && Boolean(availabilityQuery.data),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+      if (!lm) throw new Error('LanguageModel no está disponible.')
+      const availability = await lm.availability({ languages: ['es'] })
+      if (availability === 'no')
+        throw new Error('La API de Prompt no es compatible con este dispositivo.')
+      const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
+      const session =
+        availability === 'readily'
+          ? await lm.create({ expectedOutputs })
+          : await lm.create({ expectedOutputs })
+
+      const rawResult = await session.prompt(prompt)
+      const clean = stripMarkdownJson(rawResult)
+
+      let parsed: AiConclusionItem[] = []
+      try {
+        const json = JSON.parse(clean)
+        parsed = Array.isArray(json?.items) ? json.items : []
+      } catch {
+        parsed = []
+      }
+
+      return {
+        raw: rawResult,
+        parsed,
+        prompt,
+      }
+    },
+  })
+
+  const dimensions: NormalizedConclusionItem[] = useMemo(() => {
+    const parsed = conclusionsQuery.data?.parsed
+    if (!parsed || !interview) return []
+    return parsed.map((item, idx) => {
+      const stackEval = item.isStack
+        ? interview.stack.find((stack) => stack.stackId === item.dimensionId)
+        : undefined
+      const dimensionEval = !item.isStack
+        ? interview.dimensions.find(
+            (dimension) =>
+              dimension.dimensionId === item.dimensionId || dimension.id === item.dimensionId
+          )
+        : undefined
+      const effectiveId = stackEval?.id || dimensionEval?.id || item.evaluationId || `temp-${idx}`
+
+      return {
+        id: effectiveId,
+        evaluationId: effectiveId,
+        label: item.label || stackEval?.label || dimensionEval?.label || '',
+        conclusion: item.conclusion || '',
+        dimensionId: item.isStack
+          ? undefined
+          : item.dimensionId || dimensionEval?.dimensionId || '',
+        stackId: item.isStack ? item.dimensionId || stackEval?.stackId || '' : undefined,
+        isStack: item.isStack,
+        topics: item.isStack ? (stackEval?.topics ?? []) : (dimensionEval?.topics ?? []),
+        currentConclusion: item.isStack ? stackEval?.conclusion : dimensionEval?.conclusion,
+      }
+    })
+  }, [conclusionsQuery.data?.parsed, interview])
+
+  const status: StepStatus = useMemo(() => {
+    if (interviewLoading) return 'loading-interview'
+    if (availabilityQuery.isLoading) return 'checking-availability'
+    if (profileSourceQuery.isLoading) return 'fetching-profile'
+    if (profileSummaryQuery.isLoading) return 'summarizing-profile'
+    if (prompt && conclusionsQuery.isLoading) return 'generating-conclusion'
+    if (conclusionsQuery.data) return 'ready'
+    if (prompt) return 'generating-prompt'
+    return 'pending'
+  }, [
+    interviewLoading,
+    availabilityQuery.isLoading,
+    profileSourceQuery.isLoading,
+    profileSummaryQuery.isLoading,
+    prompt,
+    conclusionsQuery.isLoading,
+    conclusionsQuery.data,
+  ])
+
+  const generate = async () => {
+    await Promise.allSettled([
+      queryClient.removeQueries({ queryKey: ['AI', 'conclusions', interviewId] }),
+      queryClient.removeQueries({
+        queryKey: ['AI', 'profile-summary', interviewId, interview?.profileUrl],
+      }),
+      queryClient.removeQueries({
+        queryKey: ['AI', 'profile-source', interviewId, interview?.profileUrl],
+      }),
+    ])
+    // Dispara nuevamente el ciclo de generación
+    await conclusionsQuery.refetch()
+  }
+
+  const isGenerating = status !== 'ready'
+
+  useEffect(() => {
+    console.log('AI generation in progress:', status)
+  }, [status])
+
+  return {
+    isAiAvailable: false, //Boolean(availabilityQuery.data),
+    profileSource: profileSourceQuery.data,
+    profileSummary: profileSummaryQuery.data,
+    prompt,
+    data: conclusionsQuery.data,
+    dimensions,
+    status,
+    generate,
+    isGenerating,
+  }
 }
 
-
-const queryFn = async (interviewId?: string, setStatus?: (status: StepStatus) => void) => {
-    // TODO: Implement actual API call to fetch AI conclusions
-    setStatus?.('getting-profile');
-    // Get profile url from hook
-    return interviewId;
+export type AiConclusionsResult = {
+  raw: string
+  parsed: AiConclusionItem[]
+  prompt: string
 }
 
-type StepStatus = 'pending' | 'loading-interview' | 'getting-profile' | 'analyzing-profile' | 'generating-prompt' | 'generating-conclusion';
+export type NormalizedConclusionItem = {
+  id: string
+  evaluationId: string
+  label: string
+  conclusion: string
+  dimensionId?: string
+  stackId?: string
+  isStack?: boolean
+  topics: string[]
+  currentConclusion?: string
+}
+type LanguageModelType = {
+  availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
+  create(options?: {
+    temperature?: number
+    topK?: number
+    signal?: AbortSignal
+    monitor?: (m: {
+      addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void
+    }) => void
+    initialPrompts?: Array<{
+      role: 'system' | 'user' | 'assistant'
+      content: string
+    }>
+    expectedOutputs?: Array<{
+      type: 'text'
+      languages: string[]
+    }>
+  }): Promise<{
+    prompt(
+      text:
+        | string
+        | Array<{
+            role: string
+            content: string | Array<{ type: string; value: unknown }>
+          }>,
+      options?: { responseConstraint?: unknown }
+    ): Promise<string>
+    destroy(): void
+  }>
+}
+
+type StepStatus =
+  | 'pending'
+  | 'loading-interview'
+  | 'checking-availability'
+  | 'fetching-profile'
+  | 'summarizing-profile'
+  | 'generating-prompt'
+  | 'generating-conclusion'
+  | 'ready'

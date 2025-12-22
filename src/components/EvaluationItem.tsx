@@ -11,35 +11,41 @@ import { API_URL } from '@/lib/api'
 
 type EvaluationItemProps = {
   item: {
-    id: string
+    id?: string
+    evaluationId?: string
     label: string
     conclusion: string
-    topics: string[]
+    topics?: string[]
     stackId?: string
     dimensionId?: string
+    isStack?: boolean
     currentConclusion?: string
   }
   mode?: 'toggle' | 'editOnly'
 }
 
 export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
-
   const [isEditing, setIsEditing] = useState(false)
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)
   const [copied, setCopied] = useState(false)
 
-
-
   const queryClient = useQueryClient()
+
+  const evaluationId = item.id || item.evaluationId || ''
+  const isStack = item.isStack ?? Boolean(item.stackId && !item.dimensionId)
+  const topics = item.topics ?? []
 
   const mutation = useMutation({
     mutationFn: async (variables: { id: string; conclusion: string }) => {
       const trimmedConclusion = variables.conclusion.trim()
-      const isStack = Boolean(item.stackId)
       const operationName = isStack ? 'UpdateMainStackEvaluation' : 'UpdateDimensionEvaluation'
       const mutationName = isStack ? 'updateMainStackEvaluation' : 'updateDimensionEvaluation'
-      const inputType = isStack ? 'MainStackEvaluationWhereUniqueInput!' : 'DimensionEvaluationWhereUniqueInput!'
-      const updateInput = isStack ? 'MainStackEvaluationUpdateInput!' : 'DimensionEvaluationUpdateInput!'
+      const inputType = isStack
+        ? 'MainStackEvaluationWhereUniqueInput!'
+        : 'DimensionEvaluationWhereUniqueInput!'
+      const updateInput = isStack
+        ? 'MainStackEvaluationUpdateInput!'
+        : 'DimensionEvaluationUpdateInput!'
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -76,8 +82,8 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
   })
 
   const handleSave = () => {
-    if (localConclusion !== '') {
-      mutation.mutate({ id: item.id, conclusion: localConclusion })
+    if (localConclusion !== '' && evaluationId) {
+      mutation.mutate({ id: evaluationId, conclusion: localConclusion })
     }
   }
 
@@ -96,7 +102,7 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error("Error al copiar:", err)
+      console.error('Error al copiar:', err)
     }
   }
 
@@ -105,8 +111,8 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
       <div className="flex items-center justify-between gap-4">
         <h3 className="font-semibold text-lg text-foreground">{item.label}</h3>
         <div className="flex items-center gap-2">
-          {mode !== 'editOnly' && item.topics?.length > 0 && (
-            <TopicsDialog topics={item.topics} title="Tópicos" />
+          {mode !== 'editOnly' && topics.length > 0 && (
+            <TopicsDialog topics={topics} title="Tópicos" />
           )}
           <Button
             variant="ghost"
@@ -119,10 +125,17 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
           </Button>
           {mode === 'toggle' ? (
             <>
-              <Label htmlFor={`edit-${item.id}`} className="text-sm text-muted-foreground cursor-pointer">
+              <Label
+                htmlFor={`edit-${evaluationId}`}
+                className="text-sm text-muted-foreground cursor-pointer"
+              >
                 Editar
               </Label>
-              <Switch id={`edit-${item.id}`} checked={isEditing} onCheckedChange={handleToggle} />
+              <Switch
+                id={`edit-${evaluationId}`}
+                checked={isEditing}
+                onCheckedChange={handleToggle}
+              />
             </>
           ) : (
             <Button
@@ -147,20 +160,29 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
           isEditing ? (
             <Textarea
               value={localConclusion}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLocalConclusion(e.target.value)}
-              onBlur={() => { handleSave(); setIsEditing(false) }}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setLocalConclusion(e.target.value)
+              }
+              onBlur={() => {
+                handleSave()
+                setIsEditing(false)
+              }}
               placeholder="Escribe la conclusión aquí..."
               className="min-h-[120px] resize-none border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
             />
           ) : (
             <div className="text-muted-foreground text-sm leading-relaxed p-3 whitespace-pre-wrap">
-              {localConclusion || <span className="text-muted-foreground/50 italic">Sin conclusión</span>}
+              {localConclusion || (
+                <span className="text-muted-foreground/50 italic">Sin conclusión</span>
+              )}
             </div>
           )
         ) : (
           <Textarea
             value={localConclusion}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLocalConclusion(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setLocalConclusion(e.target.value)
+            }
             placeholder="Escribe la conclusión aquí..."
             className="min-h-[140px] resize-none bg-muted/40 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
           />

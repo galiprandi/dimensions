@@ -9,6 +9,7 @@ import { useInterviews } from './hooks/useInterviews'
 import { InterviewsView } from './views/InterviewsView'
 import { InterviewDetail } from './views/InterviewDetail'
 import { useUser } from './hooks/useUser'
+import { AppProviders } from './providers/AppProviders'
 
 function App() {
   const [loginIdentity, setLoginIdentity] = useState(localStorage.getItem('last-login-email') || '')
@@ -77,53 +78,50 @@ function App() {
 
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <Modal title="Login" open={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
-        <LoginForm
-          identity={loginIdentity}
-          secret={loginSecret}
-          isLoading={isLoginLoading}
-          status={loginStatus}
-          onChangeIdentity={setLoginIdentity}
-          onChangeSecret={setLoginSecret}
-          onLogin={handleLogin}
-        />
-      </Modal>
+      <AppProviders>
+        <Modal title="Login" open={isLoginOpen} onClose={() => setIsLoginOpen(false)}>
+          <LoginForm
+            identity={loginIdentity}
+            secret={loginSecret}
+            isLoading={isLoginLoading}
+            status={loginStatus}
+            onChangeIdentity={setLoginIdentity}
+            onChangeSecret={setLoginSecret}
+            onLogin={handleLogin}
+          />
+        </Modal>
 
-      <Toaster position="top-right" />
+        <Toaster position="top-right" />
 
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <InterviewsRoute
-              userLabel={user?.label || ''}
-              userAvatar={user?.avatar || ''}
-              userPhoto={user?.photoURL}
-              onLoginClick={() => setIsLoginOpen(true)}
-              onLogoutClick={handleLogout}
-            />
-          }
-        />
-        <Route
-          path="/interviews"
-          element={
-            <InterviewsRoute
-              userLabel={user?.label || ''}
-              userAvatar={user?.avatar || ''}
-              userPhoto={user?.photoURL}
-              onLoginClick={() => setIsLoginOpen(true)}
-              onLogoutClick={handleLogout}
-            />
-          }
-        />
-        <Route
-          path="/interviews/:id"
-          element={
-            <InterviewDetail />
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <InterviewsRoute
+                userLabel={user?.label || ''}
+                userAvatar={user?.avatar || ''}
+                userPhoto={user?.photoURL}
+                onLoginClick={() => setIsLoginOpen(true)}
+                onLogoutClick={handleLogout}
+              />
+            }
+          />
+          <Route
+            path="/interviews"
+            element={
+              <InterviewsRoute
+                userLabel={user?.label || ''}
+                userAvatar={user?.avatar || ''}
+                userPhoto={user?.photoURL}
+                onLoginClick={() => setIsLoginOpen(true)}
+                onLogoutClick={handleLogout}
+              />
+            }
+          />
+          <Route path="/interviews/:id" element={<InterviewDetail />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppProviders>
     </BrowserRouter>
   )
 }
