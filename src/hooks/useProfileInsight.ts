@@ -1,37 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { PROFILE_ENDPOINT } from '@/lib/api'
 
-type LanguageModelType = {
-  availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
-  create(options?: {
-    temperature?: number
-    topK?: number
-    signal?: AbortSignal
-    monitor?: (m: {
-      addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void
-    }) => void
-    initialPrompts?: Array<{
-      role: 'system' | 'user' | 'assistant'
-      content: string
-    }>
-    expectedOutputs?: Array<{
-      type: 'text'
-      languages: string[]
-    }>
-  }): Promise<{
-    prompt(
-      text:
-        | string
-        | Array<{
-            role: string
-            content: string | Array<{ type: string; value: unknown }>
-          }>,
-      options?: { responseConstraint?: unknown }
-    ): Promise<string>
-    destroy(): void
-  }>
-}
-
 type ProfileInsight = {
   summary: string
   raw: string
@@ -48,7 +17,7 @@ type UseProfileInsightOptions = {
   profileUrl?: string
   roleLabel?: string
   targetSeniority?: string
-  languageModel?: LanguageModelType
+  languageModel?: LanguageModelFactory
   onDownloadProgress?: (progress: number) => void
   proxyEndpoint?: string // e.g. '/api/profile-summary'
   enabled?: boolean
@@ -57,7 +26,9 @@ type UseProfileInsightOptions = {
 export function useProfileInsight(options: UseProfileInsightOptions) {
   const { id, profileUrl, roleLabel, targetSeniority, onDownloadProgress, enabled } = options
   const lm =
-    options.languageModel || (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+    options.languageModel ||
+    (globalThis as { LanguageModel?: LanguageModelFactory }).LanguageModel ||
+    LanguageModel
 
   const query = useQuery<ProfileInsight, Error>({
     queryKey: ['AI', 'profile-insight', id, profileUrl],
@@ -85,19 +56,23 @@ export function useProfileInsight(options: UseProfileInsightOptions) {
       const profileText = typeof proxyJson.text === 'string' ? proxyJson.text : ''
       if (!profileText) throw new Error('El perfil no devolvió contenido utilizable.')
 
-      const availability = await lm.availability({ languages: ['es'] })
-      if (availability === 'no')
+      const availability = await lm.availability({
+        expectedOutputs: [{ type: 'text', languages: ['es'] }],
+      })
+      if (availability === 'unavailable')
         throw new Error('La API de Prompt no es compatible con este dispositivo.')
 
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
       let session
-      if (availability === 'readily') {
+      if (availability === 'available') {
         session = await lm.create({ expectedOutputs })
       } else {
         session = await lm.create({
           expectedOutputs,
-          monitor(m) {
-            m.addEventListener('downloadprogress', (e: { loaded: number }) => {
+          monitor(m: {
+            addEventListener(type: 'downloadprogress', listener: (e: ProgressEvent) => void): void
+          }) {
+            m.addEventListener('downloadprogress', (e: ProgressEvent) => {
               if (onDownloadProgress) onDownloadProgress(Math.round(e.loaded * 100))
             })
           },
@@ -143,3 +118,6 @@ Formato de salida (máx. 6 líneas):
 
   return query
 }
+
+type ProgressEvent = { loaded: number }
+type LanguageModelFactory = typeof LanguageModel

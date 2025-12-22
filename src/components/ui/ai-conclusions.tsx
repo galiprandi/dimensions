@@ -37,7 +37,9 @@ type AiConclusionsProps = {
 }
 
 export const AiConclusions = ({ interviewId, isOpen, setIsOpen }: AiConclusionsProps) => {
-  const { data, status, isAiAvailable, isDownloading } = useAIConclusions({ interviewId })
+  const { data, status, isAiAvailable, isDownloading, generate, isGenerating } = useAIConclusions({
+    interviewId,
+  })
 
   const showDownload = isDownloading
   const hasConclusions = status === 'ready' && Boolean(data) && !showDownload
@@ -60,7 +62,7 @@ export const AiConclusions = ({ interviewId, isOpen, setIsOpen }: AiConclusionsP
     return <ProgressDialog {...props} />
   }
 
-  return <EditorDialog {...props} />
+  return <EditorDialog {...props} generate={generate} isGenerating={isGenerating} />
 }
 
 const AvailabilityDialog = ({ isOpen, setIsOpen }: BaseDialogProps) => (
@@ -181,8 +183,13 @@ const ProgressDialog = ({
   )
 }
 
-const EditorDialog = ({ isOpen, setIsOpen, interviewId }: EditorDialogProps) => {
-  const { generate, isGenerating } = useAIConclusions({ interviewId })
+const EditorDialog = ({
+  isOpen,
+  setIsOpen,
+  interviewId,
+  generate,
+  isGenerating,
+}: EditorDialogProps) => {
   return (
     <AppDialog
       open={isOpen}
@@ -219,4 +226,6 @@ type BaseDialogProps = {
 
 type EditorDialogProps = BaseDialogProps & {
   interviewId: string
+  generate: () => Promise<void>
+  isGenerating: boolean
 }

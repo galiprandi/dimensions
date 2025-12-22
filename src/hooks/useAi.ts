@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import type { QueryObserverResult } from '@tanstack/react-query'
 
-
-
 /**
  * Ejemplo de uso:
  * ```
@@ -24,7 +22,10 @@ import type { QueryObserverResult } from '@tanstack/react-query'
 export function useAi<TParsed>(options: UseAiOptions<TParsed>): UseAiResult<TParsed> {
   const { id, getPrompt, parseResponse, onDownloadProgress, languageModel } = options
 
-  const lm = languageModel || (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
+  const lm =
+    languageModel ||
+    (globalThis as { LanguageModel?: LanguageModelFactory }).LanguageModel ||
+    LanguageModel
   if (!lm) {
     throw new Error('LanguageModel no está disponible. Proporciona languageModel en las opciones.')
   }
@@ -36,21 +37,24 @@ export function useAi<TParsed>(options: UseAiOptions<TParsed>): UseAiResult<TPar
     gcTime: Infinity,
     retry: false,
     queryFn: async () => {
-      const availability = await lm.availability({ languages: ['es'] })
-      if (availability === 'no') throw new Error('La API de Prompt no es compatible con este dispositivo.')
-
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
+      const availability = await lm.availability({ expectedOutputs })
+      if (availability === 'unavailable')
+        throw new Error('La API de Prompt no es compatible con este dispositivo.')
+
       let session
-      if (availability === 'readily') {
+      if (availability === 'available') {
         session = await lm.create({ expectedOutputs })
       } else {
         session = await lm.create({
           expectedOutputs,
-          monitor(m: { addEventListener(type: 'downloadprogress', listener: (e: ProgressEvent) => void): void }) {
+          monitor(m: {
+            addEventListener(type: 'downloadprogress', listener: (e: ProgressEvent) => void): void
+          }) {
             m.addEventListener('downloadprogress', (e: ProgressEvent) => {
               if (onDownloadProgress) onDownloadProgress(Math.round(e.loaded * 100))
             })
-          }
+          },
         })
       }
 
@@ -81,10 +85,13 @@ type UseAiOptions<TParsed> = {
   getPrompt: () => string
   parseResponse: (raw: string) => TParsed
   onDownloadProgress?: (progress: number) => void
-  languageModel?: LanguageModelType
+  languageModel?: LanguageModelFactory
 }
 
-type UseAiResult<TParsed> = QueryObserverResult<{ raw: string; parsed: TParsed; prompt?: string; metrics: AiMetrics }, Error>
+type UseAiResult<TParsed> = QueryObserverResult<
+  { raw: string; parsed: TParsed; prompt?: string; metrics: AiMetrics },
+  Error
+>
 
 type ProgressEvent = { loaded: number }
 
@@ -92,48 +99,8 @@ type AiMetrics = {
   durationMs: number
   promptChars: number
   responseChars: number
-  availability: 'readily' | 'after-download'
+  availability: Availability
 }
 
-type LanguageModelType = {
-  availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
-  create(options?: {
-    temperature?: number
-    topK?: number
-    signal?: AbortSignal
-    monitor?: (m: { addEventListener(type: 'downloadprogress', listener: (e: ProgressEvent) => void): void }) => void
-    initialPrompts?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>
-    expectedOutputs?: Array<{ type: 'text'; languages: string[] }>
-  }): Promise<{
-    prompt(text: string | Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>, options?: { responseConstraint?: unknown }): Promise<string>
-    append(messages: Array<{ role: string; content: string | Array<{ type: string; value: string | Array<{ type: string; value: unknown }> }> }>): Promise<void>
-    destroy(): void
-  }>
-  params(): Promise<{ defaultTopK: number; maxTopK: number; defaultTemperature: number; maxTemperature: number }>
-}
-
-// Type declaration for Chrome's experimental AI API
-declare global {
-  const LanguageModel: {
-    availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
-    create(options?: {
-      temperature?: number
-      topK?: number
-      signal?: AbortSignal
-      monitor?: (m: { addEventListener(type: 'downloadprogress', listener: (e: { loaded: number }) => void): void }) => void
-      initialPrompts?: Array<{
-        role: 'system' | 'user' | 'assistant'
-        content: string
-      }>
-      expectedOutputs?: Array<{
-        type: 'text'
-        languages: string[]
-      }>
-    }): Promise<{
-      prompt(text: string | Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>, options?: { responseConstraint?: unknown }): Promise<string>
-      append(messages: Array<{ role: string; content: string | Array<{ type: string; value: unknown }> }>): Promise<void>
-      destroy(): void
-    }>
-    params(): Promise<{ defaultTopK: number; maxTopK: number; defaultTemperature: number; maxTemperature: number }>
-  }
-}
+type LanguageModelFactory = typeof LanguageModel
+type Availability = Awaited<ReturnType<LanguageModelFactory['availability']>>

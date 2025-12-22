@@ -192,7 +192,8 @@ Formato de salida (máx. 6 líneas):
     if (availabilityQuery.isLoading) return 'checking-availability'
     if (profileSourceQuery.isLoading) return 'fetching-profile'
     if (profileSummaryQuery.isLoading) return 'summarizing-profile'
-    if (prompt && conclusionsQuery.isLoading) return 'generating-conclusion'
+    if (prompt && (conclusionsQuery.isLoading || conclusionsQuery.isFetching))
+      return 'generating-conclusion'
     if (conclusionsQuery.data) return 'ready'
     if (prompt) return 'generating-prompt'
     return 'pending'
@@ -203,6 +204,7 @@ Formato de salida (máx. 6 líneas):
     profileSummaryQuery.isLoading,
     prompt,
     conclusionsQuery.isLoading,
+    conclusionsQuery.isFetching,
     conclusionsQuery.data,
   ])
 
