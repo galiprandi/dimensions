@@ -16,7 +16,9 @@ export function AiOptions({
 }: AiOptionsProps) {
   const [isOpen, setIsOpen] = useState(true)
   const handleOpen = () => setIsOpen(true)
-  const { isAiAvailable } = useAIConclusions({ interviewId })
+  const { isAiAvailable, isDownloading } = useAIConclusions({ interviewId })
+  const effectiveOpen = isOpen || isDownloading
+  const handleOpenChange = (next: boolean) => setIsOpen(next || isDownloading)
 
   const handleCopyPrompt = () => {
     const prompt = generateSystemPrompt(interviewName || '', dimensions, stack)
@@ -69,7 +71,11 @@ export function AiOptions({
         </Tooltip>
       </ButtonGroup>
 
-      <AiConclusions interviewId={interviewId} isOpen={isOpen} setIsOpen={setIsOpen} />
+      <AiConclusions
+        interviewId={interviewId}
+        isOpen={effectiveOpen}
+        setIsOpen={handleOpenChange}
+      />
     </>
   )
 }

@@ -19,16 +19,9 @@ type AppDialogProps = {
   description?: ReactNode
   actions?: ReactNode
   trigger?: ReactNode
-  size?: 'sm' | 'md' | 'lg'
   children: ReactNode
   className?: string
   bodyClassName?: string
-}
-
-const sizeClass: Record<NonNullable<AppDialogProps['size']>, string> = {
-  sm: 'max-w-lg',
-  md: 'max-w-2xl',
-  lg: 'max-w-3xl',
 }
 
 export function AppDialog({
@@ -39,7 +32,6 @@ export function AppDialog({
   description,
   actions,
   trigger,
-  size = 'md',
   children,
   className,
   bodyClassName,
@@ -47,7 +39,7 @@ export function AppDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-      <DialogContent className={cn(sizeClass[size], className, 'max-h-[85vh] overflow-hidden')}>
+      <DialogContent className={cn(className, 'max-h-[85vh] overflow-hidden')}>
         <DialogHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div className="space-y-1">
             <DialogTitle>{title}</DialogTitle>

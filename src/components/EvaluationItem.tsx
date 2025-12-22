@@ -116,7 +116,7 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 max-w-[1620px] w-full">
       <div className="flex items-center justify-between gap-4">
         <h3 className="font-semibold text-lg text-foreground">{item.label}</h3>
         <div className="flex items-center gap-2">
@@ -229,7 +229,6 @@ function CompareDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Comparar conclusiones"
-      size="md"
       trigger={
         <ButtonIcon
           variant="ghost"

@@ -1,0 +1,25 @@
+import { cn } from '@/lib/utils'
+
+type SpinnerProps = {
+  className?: string
+  size?: 'sm' | 'md' | 'lg'
+}
+
+const sizeClass: Record<NonNullable<SpinnerProps['size']>, string> = {
+  sm: 'h-4 w-4',
+  md: 'h-6 w-6',
+  lg: 'h-8 w-8',
+}
+
+export function Spinner({ className, size = 'md' }: SpinnerProps) {
+  return (
+    <span
+      aria-label="Cargando"
+      className={cn(
+        'inline-block animate-spin rounded-full border-2 border-muted-foreground/60 border-t-transparent',
+        sizeClass[size],
+        className
+      )}
+    />
+  )
+}
