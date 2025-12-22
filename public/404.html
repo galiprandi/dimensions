@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="0;url=/dimensions/" />
+    <script>
+      // Preserve path/query when redirecting to SPA entrypoint
+      const redirect = () => {
+        const l = window.location
+        const base = '/dimensions/'
+        const newUrl = base + '#!' + l.pathname.replace(base, '') + l.search + l.hash
+        l.replace(newUrl)
+      }
+      redirect()
+    </script>
+  </head>
+  <body></body>
+</html>
