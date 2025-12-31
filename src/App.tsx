@@ -8,6 +8,7 @@ import { loginBackofficeUser } from './lib/auth'
 import { useInterviews } from './hooks/useInterviews'
 import { InterviewsView } from './views/InterviewsView'
 import { InterviewDetail } from './views/InterviewDetail'
+import { InterviewAssistant } from './views/InterviewAssistant'
 import { useUser } from './hooks/useUser'
 import { AppProviders } from './providers/AppProviders'
 
@@ -119,6 +120,7 @@ function App() {
             }
           />
           <Route path="/interviews/:id" element={<InterviewDetail />} />
+          <Route path="/interviews/:id/assistant" element={<InterviewAssistant />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppProviders>
