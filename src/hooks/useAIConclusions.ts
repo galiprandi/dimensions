@@ -119,7 +119,7 @@ export const useAIConclusions = ({
     queryKey: ['AI', 'profile-summary', interviewId, interview?.profileUrl],
     enabled: enabled && Boolean(profileSourceQuery.data) && Boolean(availabilityQuery.data),
     staleTime: Infinity,
-    gcTime: Infinity,
+    gcTime: 1000 * 60 * 10, // 10 minutes
     retry: false,
     queryFn: async () => {
       const lm = (globalThis as { LanguageModel?: LanguageModelType }).LanguageModel
