@@ -225,7 +225,7 @@ Formato de salida (máx. 6 líneas):
     }
   }, [])
 
-  const dimensions: NormalizedConclusionItem[] = useMemo(() => {
+  const parsedItems: NormalizedConclusionItem[] = useMemo(() => {
     const parsed = conclusionsQuery.data?.parsed
     if (!parsed || !interview) return []
     return parsed.map((item, idx) => {
@@ -238,24 +238,43 @@ Formato de salida (máx. 6 líneas):
               dimension.dimensionId === item.dimensionId || dimension.id === item.dimensionId
           )
         : undefined
-      const effectiveId = stackEval?.id || dimensionEval?.id || item.evaluationId || `temp-${idx}`
+      const effectiveId =
+        stackEval?.id ||
+        dimensionEval?.id ||
+        item.dimensionId ||
+        item.evaluationId ||
+        (item.isStack ? `stack-${idx}` : `dim-${idx}`)
 
       return {
         id: effectiveId,
         evaluationId: effectiveId,
-        label: item.label || stackEval?.label || dimensionEval?.label || '',
+        label:
+          item.label ||
+          stackEval?.label ||
+          dimensionEval?.label.split(' (')[0] ||
+          (item.isStack ? 'Main Stack' : 'Dimension'),
         conclusion: item.conclusion || '',
         dimensionId: item.isStack
           ? undefined
           : item.dimensionId || dimensionEval?.dimensionId || '',
         stackId: item.isStack ? item.dimensionId || stackEval?.stackId || '' : undefined,
-        isStack: item.isStack,
+        type: item.isStack ? 'stack' : 'dimension',
         topics: item.isStack ? (stackEval?.topics ?? []) : (dimensionEval?.topics ?? []),
         currentConclusion: item.isStack ? stackEval?.conclusion : dimensionEval?.conclusion,
-        isFinal: false,
       }
     })
   }, [conclusionsQuery.data?.parsed, interview])
+
+  const finalItem: NormalizedConclusionItem = {
+    id: interviewId!,
+    evaluationId: interviewId!,
+    label: 'Conclusión Final',
+    conclusion: conclusionsQuery.data?.finalConclusion || '',
+    type: 'conclusion',
+    topics: [],
+  }
+
+  const items = [...parsedItems, finalItem]
 
   const status: StepStatus = useMemo(() => {
     if (interviewLoading) return 'loading-interview'
@@ -294,24 +313,20 @@ Formato de salida (máx. 6 líneas):
 
   const isGenerating = status !== 'ready'
 
-  useEffect(() => {
-    console.log('AI generation in progress:', status)
-  }, [status])
-
+  console.log({ prompt, items })
   return {
     isAiAvailable: Boolean(availabilityQuery.data),
     profileSource: profileSourceQuery.data,
     profileSummary: profileSummaryQuery.data,
     prompt,
     data: conclusionsQuery.data,
-    dimensions,
+    items,
     status,
     generate,
     isGenerating,
     isDownloading,
     downloadProgress,
     STEP_LABELS,
-    finalConclusion: conclusionsQuery.data?.finalConclusion || '',
   }
 }
 
@@ -329,11 +344,11 @@ export type NormalizedConclusionItem = {
   conclusion: string
   dimensionId?: string
   stackId?: string
-  isStack?: boolean
+  type: 'dimension' | 'stack' | 'conclusion'
   topics: string[]
   currentConclusion?: string
-  isFinal?: boolean
 }
+
 type LanguageModelType = {
   availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>
   create(options?: {

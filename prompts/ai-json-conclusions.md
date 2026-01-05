@@ -12,20 +12,34 @@ Devuelve **solo** este JSON, sin markdown, sin texto extra, sin backticks:
 
 ```json
 {
-  "items": [{ "dimensionId": "id-de-la-dimension", "conclusion": "párrafo1\n\npárrafo2" }],
+  "items": [
+    {
+      "dimensionId": "id-de-la-dimension",
+      "label": "Nombre de la dimensión",
+      "isStack": false,
+      "conclusion": "párrafo1\n\npárrafo2"
+    },
+    {
+      "dimensionId": "id-del-stack",
+      "label": "Nombre del stack",
+      "isStack": true,
+      "conclusion": "párrafo1\n\npárrafo2"
+    }
+  ],
   "finalConclusion": "conclusión final sintetizada"
 }
 ```
 
 ### Reglas de contenido
 
-- Usa exactamente los `dimensionId` provistos en las notas.
-- Cada ítem debe incluir ambos campos: `dimensionId` y `conclusion`. Si falta alguno, **no incluyas** ese ítem.
-- No agregues otros campos ni comentarios.
-- Devuelve un ítem por **cada** `dimensionId` listado (dimensiones y main stacks). Si falta evidencia para alguno, responde `"conclusion": "Sin conclusión"` pero conserva el `dimensionId`.
-- Las conclusiones deben ser detalladas, profundas y accionables, alineadas al contexto entregado.
-- Expande cada conclusión a dos párrafos breves o uno extenso de aproximadamente 400 caracteres, conectando los tópicos validados con ejemplos de las notas, sin agregar tecnologías o experiencias no mencionadas. Jamás inventes información; si algo no está en las notas, no lo incluyas. Si la evidencia es escasa, indica 'Sin conclusión' en lugar de inventar.
-- Además, genera una conclusión final que sintetice las evaluaciones de todas las dimensiones y main stacks, en un párrafo extenso de aproximadamente 500 caracteres, basándose únicamente en la evidencia proporcionada y sin inventar información.
+- Usa exactamente los `dimensionId` provistos en las notas. Devuelve un ítem por **cada** `dimensionId` listado (dimensiones y main stacks) en el orden de entrada.
+- Cada ítem debe incluir `dimensionId`, `label`, `conclusion`, e `isStack` (true para main stacks, false para dimensiones). No agregues otros campos ni comentarios.
+- Longitud: 300–400 caracteres por conclusión en 1-2 párrafos separados por un salto de línea en blanco. **Nunca menos de 280 caracteres.** Si las notas son breves, expande igualmente a ~300 complementando con lo que se evalúa en la dimensión y, cuando aplique, con la reseña de perfil. Solo usa `"Sin conclusión"` si no hay evidencia en notas ni en la reseña de perfil.
+- Las conclusiones deben ser detalladas, profundas y accionables, alineadas al contexto entregado. Prioriza las notas del entrevistador como fuente principal; la reseña de perfil es solo complemento.
+- Corrige y normaliza nombres de tecnologías/herramientas si vienen abreviados o con errores, usando su nombre oficial.
+- Mantén coherencia narrativa: usa el mismo tono y terminología a lo largo de todas las conclusiones; evita contradicciones entre ítems. La conclusión final debe referenciar y sintetizar los puntos clave ya mencionados, sin introducir información nueva.
+- Genera una conclusión final que sintetice todas las dimensiones y main stacks en ~500 caracteres, sin inventar información.
+- Traducción de términos: traduce al español expresiones genéricas como “Testing best practices” u otros términos descriptivos; conserva en inglés los nombres propios de tecnologías y herramientas, pero escritos correctamente.
 
 ### Ejemplos
 

@@ -54,7 +54,7 @@ export function buildJsonPrompt(
   if (filteredStack.length > 0) {
     blocks.push('Main stacks (contexto):')
     filteredStack.forEach((s) => {
-      blocks.push(`- ${s.label} (id: ${s.stackId})`)
+      blocks.push(`- ${s.label} [main stack] (id: ${s.stackId})`)
       if (s.topics && s.topics.length > 0) {
         blocks.push(`> Tópicos validados: ${s.topics.join(', ')}`)
       }

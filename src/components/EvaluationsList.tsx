@@ -33,28 +33,31 @@ export function EvaluationsList({
   const allItems = [
     ...dimensions.map((d) => ({
       id: d.id,
+      evaluationId: d.id,
       label: d.label,
       conclusion: d.conclusion,
       topics: d.topics,
       dimensionId: d.dimensionId,
-      isFinal: false,
+      type: 'dimension' as const,
     })),
     ...stacks.map((s) => ({
       id: s.id,
+      evaluationId: s.id,
       label: s.label,
       conclusion: s.conclusion,
       topics: [],
       stackId: s.stackId,
-      isFinal: false,
+      type: 'stack' as const,
     })),
     ...(finalConclusion
       ? [
           {
             id: interviewId,
+            evaluationId: interviewId,
             label: 'Conclusión Final',
             conclusion: finalConclusion,
             topics: [],
-            isFinal: true,
+            type: 'conclusion' as const,
           },
         ]
       : []),
@@ -85,7 +88,12 @@ export function EvaluationsList({
     <div className="relative space-y-4">
       <div className="space-y-4">
         {allItems?.map((item) => (
-          <EvaluationItem key={item.id} item={item} isFinalConclusion={item.isFinal} />
+          <EvaluationItem
+            key={item.id}
+            item={item}
+            mode={item.type === 'conclusion' ? 'editOnly' : undefined}
+            isFinalConclusion={item.type === 'conclusion'}
+          />
         ))}
       </div>
     </div>

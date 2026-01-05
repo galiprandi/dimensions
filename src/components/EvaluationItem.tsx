@@ -9,20 +9,10 @@ import { Copy, Check, FileDiff } from 'lucide-react'
 import { toast } from 'sonner'
 import { TopicsDialog } from './TopicsDialog'
 import { API_URL } from '@/lib/api'
+import type { NormalizedConclusionItem } from '@/hooks/useAIConclusions'
 
 type EvaluationItemProps = {
-  item: {
-    id?: string
-    evaluationId?: string
-    label: string
-    conclusion: string
-    topics?: string[]
-    stackId?: string
-    dimensionId?: string
-    isStack?: boolean
-    isFinal?: boolean
-    currentConclusion?: string
-  }
+  item: NormalizedConclusionItem
   mode?: 'toggle' | 'editOnly'
   isFinalConclusion?: boolean
 }
@@ -40,7 +30,7 @@ export function EvaluationItem({
   const queryClient = useQueryClient()
 
   const evaluationId = item.id || item.evaluationId || ''
-  const isStack = item.isStack ?? Boolean(item.stackId && !item.dimensionId)
+  const isStack = item.type === 'stack'
   const topics = item.topics ?? []
   const trimmedCurrent = (item.currentConclusion ?? '').trim()
 
