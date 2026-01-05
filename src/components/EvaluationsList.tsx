@@ -18,13 +18,46 @@ type EvaluationsListProps = {
     stackName: string
     label: string
   }[]
+  finalConclusion?: string
   isLoading?: boolean
+  interviewId: string
 }
 
-export function EvaluationsList({ dimensions, stacks, isLoading }: EvaluationsListProps) {
+export function EvaluationsList({
+  dimensions,
+  stacks,
+  finalConclusion,
+  isLoading,
+  interviewId,
+}: EvaluationsListProps) {
   const allItems = [
-    ...dimensions.map(d => ({ id: d.id, label: d.label, conclusion: d.conclusion, topics: d.topics, dimensionId: d.dimensionId })),
-    ...stacks.map(s => ({ id: s.id, label: s.label, conclusion: s.conclusion, topics: [], stackId: s.stackId }))
+    ...dimensions.map((d) => ({
+      id: d.id,
+      label: d.label,
+      conclusion: d.conclusion,
+      topics: d.topics,
+      dimensionId: d.dimensionId,
+      isFinal: false,
+    })),
+    ...stacks.map((s) => ({
+      id: s.id,
+      label: s.label,
+      conclusion: s.conclusion,
+      topics: [],
+      stackId: s.stackId,
+      isFinal: false,
+    })),
+    ...(finalConclusion
+      ? [
+          {
+            id: interviewId,
+            label: 'Conclusión Final',
+            conclusion: finalConclusion,
+            topics: [],
+            isFinal: true,
+          },
+        ]
+      : []),
   ]
 
   if (isLoading) {
@@ -52,7 +85,7 @@ export function EvaluationsList({ dimensions, stacks, isLoading }: EvaluationsLi
     <div className="relative space-y-4">
       <div className="space-y-4">
         {allItems?.map((item) => (
-          <EvaluationItem key={item.id} item={item} />
+          <EvaluationItem key={item.id} item={item} isFinalConclusion={item.isFinal} />
         ))}
       </div>
     </div>

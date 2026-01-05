@@ -15,6 +15,7 @@ export function InterviewDetail() {
     stack = [],
     photoURL = '',
     seniority = '',
+    conclusion = '',
   } = interviewData || {}
 
   return (
@@ -32,7 +33,13 @@ export function InterviewDetail() {
           interviewId={id}
         />
 
-        <EvaluationsList dimensions={dimensions || []} stacks={stack || []} isLoading={isLoading} />
+        <EvaluationsList
+          dimensions={dimensions || []}
+          stacks={stack || []}
+          finalConclusion={conclusion}
+          isLoading={isLoading}
+          interviewId={id}
+        />
       </div>
     </div>
   )

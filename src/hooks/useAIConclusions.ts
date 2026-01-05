@@ -165,7 +165,8 @@ Formato de salida (máx. 6 líneas):
       interview.candidate,
       interview.dimensions,
       interview.stack,
-      profileSummaryQuery.data
+      profileSummaryQuery.data,
+      interview.conclusion
     )
   }, [interview, profileSummaryQuery.data])
 
@@ -190,17 +191,22 @@ Formato de salida (máx. 6 líneas):
         const clean = stripMarkdownJson(rawResult)
 
         let parsed: AiConclusionItem[] = []
+        let json: Record<string, unknown> = {}
         try {
-          const json = JSON.parse(clean)
-          parsed = Array.isArray(json?.items) ? json.items : []
+          json = JSON.parse(clean)
+          parsed = Array.isArray(json?.items) ? (json.items as AiConclusionItem[]) : []
         } catch {
           parsed = []
         }
+
+        const finalConclusion =
+          typeof json?.finalConclusion === 'string' ? json.finalConclusion.trim() : ''
 
         return {
           raw: rawResult,
           parsed,
           prompt,
+          finalConclusion,
         }
       } catch (error) {
         setModelReady(false)
@@ -246,6 +252,7 @@ Formato de salida (máx. 6 líneas):
         isStack: item.isStack,
         topics: item.isStack ? (stackEval?.topics ?? []) : (dimensionEval?.topics ?? []),
         currentConclusion: item.isStack ? stackEval?.conclusion : dimensionEval?.conclusion,
+        isFinal: false,
       }
     })
   }, [conclusionsQuery.data?.parsed, interview])
@@ -304,6 +311,7 @@ Formato de salida (máx. 6 líneas):
     isDownloading,
     downloadProgress,
     STEP_LABELS,
+    finalConclusion: conclusionsQuery.data?.finalConclusion || '',
   }
 }
 
@@ -311,6 +319,7 @@ export type AiConclusionsResult = {
   raw: string
   parsed: AiConclusionItem[]
   prompt: string
+  finalConclusion: string
 }
 
 export type NormalizedConclusionItem = {
@@ -323,6 +332,7 @@ export type NormalizedConclusionItem = {
   isStack?: boolean
   topics: string[]
   currentConclusion?: string
+  isFinal?: boolean
 }
 type LanguageModelType = {
   availability(options?: { languages?: string[] }): Promise<'readily' | 'after-download' | 'no'>

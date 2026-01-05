@@ -17,9 +17,15 @@ export type StackItem = {
   topics?: string[]
 }
 
-export function buildJsonPrompt(candidate: string, dimensions: DimensionItem[], stack: StackItem[], profileSummary?: string): string {
-  const filteredDimensions = dimensions.filter(dim => dim.conclusion.trim().length > 0)
-  const filteredStack = stack.filter(s => s.conclusion.trim().length > 0)
+export function buildJsonPrompt(
+  candidate: string,
+  dimensions: DimensionItem[],
+  stack: StackItem[],
+  profileSummary?: string,
+  interviewConclusion?: string
+): string {
+  const filteredDimensions = dimensions.filter((dim) => dim.conclusion.trim().length > 0)
+  const filteredStack = stack.filter((s) => s.conclusion.trim().length > 0)
 
   const blocks: string[] = []
   blocks.push(aiJsonPromptGuide.trim())
@@ -36,7 +42,7 @@ export function buildJsonPrompt(candidate: string, dimensions: DimensionItem[], 
   blocks.push('')
   if (filteredDimensions.length > 0) {
     blocks.push('Dimensiones:')
-    filteredDimensions.forEach(dim => {
+    filteredDimensions.forEach((dim) => {
       blocks.push(`- ${dim.label} (id: ${dim.dimensionId})`)
       if (dim.topics && dim.topics.length > 0) {
         blocks.push(`> Tópicos validados: ${dim.topics.join(', ')}`)
@@ -47,13 +53,19 @@ export function buildJsonPrompt(candidate: string, dimensions: DimensionItem[], 
   }
   if (filteredStack.length > 0) {
     blocks.push('Main stacks (contexto):')
-    filteredStack.forEach(s => {
+    filteredStack.forEach((s) => {
       blocks.push(`- ${s.label} (id: ${s.stackId})`)
       if (s.topics && s.topics.length > 0) {
         blocks.push(`> Tópicos validados: ${s.topics.join(', ')}`)
       }
       blocks.push(`=> ${s.conclusion}`)
     })
+  }
+  if (interviewConclusion?.trim()) {
+    blocks.push('')
+    blocks.push('## Conclusión general')
+    blocks.push(`Mis notas son: ${interviewConclusion.trim()}`)
+    blocks.push('')
   }
   return blocks.join('\n').trim()
 }
@@ -67,11 +79,17 @@ export function stripMarkdownJson(raw: string) {
   return trimmed
 }
 
-export function generateSystemPrompt(candidate: string, dimensions: DimensionItem[], stack: StackItem[]): string {
-  const filteredDimensions = dimensions.filter(dim => dim.conclusion.trim().length > 0)
-  const filteredStack = stack.filter(s => s.conclusion.trim().length > 0)
+export function generateSystemPrompt(
+  candidate: string,
+  dimensions: DimensionItem[],
+  stack: StackItem[]
+): string {
+  const filteredDimensions = dimensions.filter((dim) => dim.conclusion.trim().length > 0)
+  const filteredStack = stack.filter((s) => s.conclusion.trim().length > 0)
 
-  let prompt = systemPromptGuide.trim() + '\n\n---\n\n> Las siguientes son notas que he tomado cómo entrevistador/validador técnico en una entrevista 1:1 con el candidato.\n\n'
+  let prompt =
+    systemPromptGuide.trim() +
+    '\n\n---\n\n> Las siguientes son notas que he tomado cómo entrevistador/validador técnico en una entrevista 1:1 con el candidato.\n\n'
 
   if (candidate.trim()) {
     prompt += `## Candidato: ${candidate.trim()}\n\n`
@@ -79,12 +97,12 @@ export function generateSystemPrompt(candidate: string, dimensions: DimensionIte
 
   let sectionNumber = 0
 
-  filteredDimensions.forEach(dim => {
+  filteredDimensions.forEach((dim) => {
     sectionNumber++
     prompt += `## ${sectionNumber}. ${dim.label}\n\nMis notas son: ${dim.conclusion}\n\n`
   })
 
-  filteredStack.forEach(s => {
+  filteredStack.forEach((s) => {
     sectionNumber++
     prompt += `## ${sectionNumber}. ${s.label}\n\nMis notas son: ${s.conclusion}\n\n`
   })

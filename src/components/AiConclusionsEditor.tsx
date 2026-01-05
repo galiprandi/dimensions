@@ -6,19 +6,29 @@ type AiConclusionsEditorProps = {
 }
 
 export function AiConclusionsEditor({ interviewId }: AiConclusionsEditorProps) {
-  const { dimensions } = useAIConclusions({ interviewId })
+  const { dimensions, finalConclusion } = useAIConclusions({ interviewId })
 
-  if (!dimensions.length) return null
+  const items = [...dimensions]
+  if (finalConclusion) {
+    items.push({
+      id: 'final',
+      evaluationId: 'final',
+      label: 'Conclusión Final',
+      conclusion: finalConclusion,
+      isFinal: true,
+      topics: [],
+    })
+  }
+
+  if (!items.length) return null
 
   return (
     <div className="space-y-4">
-      {dimensions.map((item) => (
+      {items.map((item) => (
         <EvaluationItem
           key={item.evaluationId}
-          mode="editOnly"
-          item={{
-            ...item,
-          }}
+          mode={item.isFinal ? 'toggle' : 'editOnly'}
+          item={item}
         />
       ))}
     </div>

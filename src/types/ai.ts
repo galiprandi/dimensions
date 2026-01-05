@@ -4,4 +4,5 @@ export type AiConclusionItem = {
   label: string
   conclusion: string
   isStack?: boolean
+  finalConclusion?: string
 }

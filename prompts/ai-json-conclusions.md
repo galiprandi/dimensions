@@ -12,7 +12,8 @@ Devuelve **solo** este JSON, sin markdown, sin texto extra, sin backticks:
 
 ```json
 {
-  "items": [{ "dimensionId": "id-de-la-dimension", "conclusion": "párrafo1\n\npárrafo2" }]
+  "items": [{ "dimensionId": "id-de-la-dimension", "conclusion": "párrafo1\n\npárrafo2" }],
+  "finalConclusion": "conclusión final sintetizada"
 }
 ```
 
@@ -24,6 +25,7 @@ Devuelve **solo** este JSON, sin markdown, sin texto extra, sin backticks:
 - Devuelve un ítem por **cada** `dimensionId` listado (dimensiones y main stacks). Si falta evidencia para alguno, responde `"conclusion": "Sin conclusión"` pero conserva el `dimensionId`.
 - Las conclusiones deben ser detalladas, profundas y accionables, alineadas al contexto entregado.
 - Expande cada conclusión a dos párrafos breves o uno extenso de aproximadamente 400 caracteres, conectando los tópicos validados con ejemplos de las notas, sin agregar tecnologías o experiencias no mencionadas. Jamás inventes información; si algo no está en las notas, no lo incluyas. Si la evidencia es escasa, indica 'Sin conclusión' en lugar de inventar.
+- Además, genera una conclusión final que sintetice las evaluaciones de todas las dimensiones y main stacks, en un párrafo extenso de aproximadamente 500 caracteres, basándose únicamente en la evidencia proporcionada y sin inventar información.
 
 ### Ejemplos
 

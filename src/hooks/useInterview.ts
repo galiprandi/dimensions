@@ -31,24 +31,31 @@ type InterviewData = {
   profileUrl: string
   dimensions: Dimension[]
   stack: Stack[]
+  conclusion: string
 }
 
-function processInterviewData(rawData: { data: InterviewDetailData | undefined }): InterviewData | undefined {
+function processInterviewData(rawData: {
+  data: InterviewDetailData | undefined
+}): InterviewData | undefined {
   if (!rawData?.data?.interview) return undefined
 
   return {
-    candidate: rawData.data.interview.professional?.fullName as string || '',
-    photoURL: rawData.data.interview.professional?.photoURL as string || '',
-    seniority: rawData.data.interview.professional?.seniority as string || '',
-    status: rawData.data.interview.status as string || '',
+    candidate: (rawData.data.interview.professional?.fullName as string) || '',
+    photoURL: (rawData.data.interview.professional?.photoURL as string) || '',
+    seniority: (rawData.data.interview.professional?.seniority as string) || '',
+    status: (rawData.data.interview.status as string) || '',
     profileUrl: (rawData.data.interview.deepProfile as string) || '',
     dimensions: (rawData.data.interview.dimensionEvaluations || [])
-      .filter(evaluation => evaluation.conclusion)
-      .map(evaluation => {
-        const dimension = (rawData.data!.dimensions || []).find(d => d.id === evaluation.dimension?.id)
-        const dimensionName = dimension?.name as string || ''
+      .filter((evaluation) => evaluation.conclusion)
+      .map((evaluation) => {
+        const dimension = (rawData.data!.dimensions || []).find(
+          (d) => d.id === evaluation.dimension?.id
+        )
+        const dimensionName = (dimension?.name as string) || ''
         const capitalizedName = dimensionName.charAt(0).toUpperCase() + dimensionName.slice(1)
-        const area = (dimension?.technologyFocus as string || '').charAt(0).toUpperCase() + (dimension?.technologyFocus as string || '').slice(1)
+        const area =
+          ((dimension?.technologyFocus as string) || '').charAt(0).toUpperCase() +
+          ((dimension?.technologyFocus as string) || '').slice(1)
         const topics: string[] = []
         if (Array.isArray(dimension?.subdimensions)) {
           for (const sub of dimension.subdimensions) {
@@ -63,13 +70,15 @@ function processInterviewData(rawData: { data: InterviewDetailData | undefined }
           dimensionName,
           area,
           label: `${capitalizedName} (${area})`,
-          topics
+          topics,
         }
       }),
     stack: (rawData.data.interview.mainStackEvaluations || [])
-      .filter(evaluation => evaluation.conclusion)
-      .map(evaluation => {
-        const mainStack = (rawData.data!.mainStacks || []).find(s => s.id === evaluation.mainStack?.id)
+      .filter((evaluation) => evaluation.conclusion)
+      .map((evaluation) => {
+        const mainStack = (rawData.data!.mainStacks || []).find(
+          (s) => s.id === evaluation.mainStack?.id
+        )
         const topics: string[] = []
         if (Array.isArray(mainStack?.topics)) {
           for (const t of mainStack.topics) {
@@ -81,11 +90,12 @@ function processInterviewData(rawData: { data: InterviewDetailData | undefined }
           id: evaluation.id as string,
           conclusion: evaluation.conclusion as string,
           stackId: evaluation.mainStack?.id as string,
-          stackName: mainStack?.name as string || '',
-          label: mainStack?.name as string || '',
-          topics
+          stackName: (mainStack?.name as string) || '',
+          label: (mainStack?.name as string) || '',
+          topics,
         }
-      })
+      }),
+    conclusion: (rawData.data.interview.conclusion as string) || '',
   }
 }
 

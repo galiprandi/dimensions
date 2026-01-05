@@ -20,12 +20,18 @@ type EvaluationItemProps = {
     stackId?: string
     dimensionId?: string
     isStack?: boolean
+    isFinal?: boolean
     currentConclusion?: string
   }
   mode?: 'toggle' | 'editOnly'
+  isFinalConclusion?: boolean
 }
 
-export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
+export function EvaluationItem({
+  item,
+  mode = 'toggle',
+  isFinalConclusion = false,
+}: EvaluationItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)
   const [copied, setCopied] = useState(false)
@@ -47,14 +53,25 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
   const mutation = useMutation({
     mutationFn: async (variables: { id: string; conclusion: string }) => {
       const trimmedConclusion = variables.conclusion.trim()
-      const operationName = isStack ? 'UpdateMainStackEvaluation' : 'UpdateDimensionEvaluation'
-      const mutationName = isStack ? 'updateMainStackEvaluation' : 'updateDimensionEvaluation'
-      const inputType = isStack
-        ? 'MainStackEvaluationWhereUniqueInput!'
-        : 'DimensionEvaluationWhereUniqueInput!'
-      const updateInput = isStack
-        ? 'MainStackEvaluationUpdateInput!'
-        : 'DimensionEvaluationUpdateInput!'
+      let operationName: string
+      let mutationName: string
+      let inputType: string
+      let updateInput: string
+      if (isFinalConclusion) {
+        operationName = 'UpdateInterview'
+        mutationName = 'updateInterview'
+        inputType = 'InterviewWhereUniqueInput!'
+        updateInput = 'InterviewUpdateInput!'
+      } else {
+        operationName = isStack ? 'UpdateMainStackEvaluation' : 'UpdateDimensionEvaluation'
+        mutationName = isStack ? 'updateMainStackEvaluation' : 'updateDimensionEvaluation'
+        inputType = isStack
+          ? 'MainStackEvaluationWhereUniqueInput!'
+          : 'DimensionEvaluationWhereUniqueInput!'
+        updateInput = isStack
+          ? 'MainStackEvaluationUpdateInput!'
+          : 'DimensionEvaluationUpdateInput!'
+      }
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -91,7 +108,7 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
   })
 
   const handleSave = () => {
-    if (localConclusion !== '' && evaluationId) {
+    if (localConclusion !== '' && evaluationId && evaluationId !== 'final') {
       mutation.mutate({ id: evaluationId, conclusion: localConclusion })
     }
   }
@@ -198,6 +215,13 @@ export function EvaluationItem({ item, mode = 'toggle' }: EvaluationItemProps) {
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
               setLocalConclusion(e.target.value)
             }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSave()
+              }
+            }}
+            onBlur={() => handleSave()}
             placeholder="Escribe la conclusión aquí..."
             className="min-h-[140px] resize-none bg-muted/40 focus-visible:ring-0 focus-visible:ring-offset-0 p-3"
           />
