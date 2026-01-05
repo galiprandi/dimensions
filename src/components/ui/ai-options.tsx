@@ -16,12 +16,12 @@ export function AiOptions({
 }: AiOptionsProps) {
   const [isOpen, setIsOpen] = useState(false)
   const handleOpen = () => setIsOpen(true)
-  const { isAiAvailable, isDownloading } = useAIConclusions({ interviewId })
+  const { isAiAvailable, isDownloading, finalConclusion } = useAIConclusions({ interviewId })
   const effectiveOpen = isOpen || isDownloading
   const handleOpenChange = (next: boolean) => setIsOpen(next || isDownloading)
 
   const handleCopyPrompt = () => {
-    const prompt = generateSystemPrompt(interviewName || '', dimensions, stack)
+    const prompt = generateSystemPrompt(interviewName || '', dimensions, stack, finalConclusion)
     if (!prompt.trim()) {
       toast.error('No hay contenido para copiar.')
       return

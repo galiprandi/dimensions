@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -7,11 +7,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Globe } from 'lucide-react'
+import { Globe, FileText } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { SeniorityBadge } from './SeniorityBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { AiProfileModal } from '@/components/ui/ai-profile-modal'
 
 interface InterviewListItem {
   id: string
@@ -45,6 +46,10 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
       return b.id.localeCompare(a.id)
     })
   }, [items])
+
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedCandidate, setSelectedCandidate] = useState<string>('')
+  const [open, setOpen] = useState(false)
 
   if (isLoading) {
     return (
@@ -94,6 +99,7 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
             <TableHead>Candidate</TableHead>
             <TableHead>Seniority</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>AI Profile</TableHead>
             <TableHead>Profile</TableHead>
           </TableRow>
         </TableHeader>
@@ -109,7 +115,12 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={r.photoURL} alt={r.candidate} />
                     <AvatarFallback>
-                      {r.candidate?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
+                      {r.candidate
+                        ?.split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2) || '?'}
                     </AvatarFallback>
                   </Avatar>
                   <span>{r.candidate || '—'}</span>
@@ -122,24 +133,52 @@ export function InterviewList({ items, isLoading, error, onSelect }: Props) {
                 <StatusBadge status={r.status} />
               </TableCell>
               <TableCell>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedId(r.id)
+                    setSelectedCandidate(r.candidate)
+                    setOpen(true)
+                  }}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+              </TableCell>
+              <TableCell>
                 {r.profile ? (
-                  <a href={r.profile} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <a
+                    href={r.profile}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Globe className="h-4 w-4" />
-                    Profile
+                    Ver perfil
                   </a>
-                ) : '—'}
+                ) : (
+                  '—'
+                )}
               </TableCell>
             </TableRow>
           ))}
           {rows.length === 0 && !isLoading && (
             <TableRow>
-              <TableCell colSpan={3} className="text-center text-muted-foreground">
-                No results.
+              <TableCell colSpan={5} className="text-center text-muted-foreground">
+                No hay entrevistas
               </TableCell>
             </TableRow>
           )}
         </TableBody>
       </Table>
+
+      <AiProfileModal
+        interviewId={selectedId}
+        candidateName={selectedCandidate}
+        open={open}
+        onOpenChange={setOpen}
+      />
     </div>
   )
 }

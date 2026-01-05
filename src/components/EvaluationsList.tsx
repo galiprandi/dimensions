@@ -91,7 +91,7 @@ export function EvaluationsList({
           <EvaluationItem
             key={item.id}
             item={item}
-            mode={item.type === 'conclusion' ? 'editOnly' : undefined}
+            mode={item.type === 'conclusion' ? 'toggle' : undefined}
             isFinalConclusion={item.type === 'conclusion'}
           />
         ))}

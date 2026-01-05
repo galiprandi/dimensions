@@ -82,7 +82,8 @@ export function stripMarkdownJson(raw: string) {
 export function generateSystemPrompt(
   candidate: string,
   dimensions: DimensionItem[],
-  stack: StackItem[]
+  stack: StackItem[],
+  finalConclusion?: string
 ): string {
   const filteredDimensions = dimensions.filter((dim) => dim.conclusion.trim().length > 0)
   const filteredStack = stack.filter((s) => s.conclusion.trim().length > 0)
@@ -106,6 +107,11 @@ export function generateSystemPrompt(
     sectionNumber++
     prompt += `## ${sectionNumber}. ${s.label}\n\nMis notas son: ${s.conclusion}\n\n`
   })
+
+  if (finalConclusion?.trim()) {
+    sectionNumber++
+    prompt += `## ${sectionNumber}. Conclusión Final\n\nMis notas son: ${finalConclusion.trim()}\n\n`
+  }
 
   return prompt.trim()
 }

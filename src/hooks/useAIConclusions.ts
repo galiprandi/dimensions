@@ -4,6 +4,7 @@ import { buildJsonPrompt, stripMarkdownJson } from '@/utils/ai'
 import type { AiConclusionItem } from '@/types/ai'
 import { PROFILE_ENDPOINT } from '@/lib/api'
 import { useInterview } from './useInterview'
+import { profileSummaryPrompt } from '../../prompts/ai-profile-summary'
 
 const STEP_LABELS: readonly StepLabel[] = [
   { key: 'loading-interview', label: 'Cargando entrevista', activeOn: ['loading-interview'] },
@@ -130,24 +131,9 @@ export const useAIConclusions = ({
       const expectedOutputs = [{ type: 'text' as const, languages: ['es'] }]
       const session = await getOrCreateSession(expectedOutputs)
 
-      const prompt = `
-Eres un revisor técnico. A partir del perfil público extraído, redacta una reseña breve en español.
-- Enfócate en stack, lenguajes, frameworks, años/tiempo de experiencia y seniority percibido.
-- Si no hay datos, indica que la información es insuficiente.
-- No inventes ni agregues datos no presentes.
-
-Contexto:
-- Fuente: ${interview?.profileUrl || 'N/D'}
-- Texto del perfil (recortado): """${profileSourceQuery.data?.slice(0, 12000) || ''}"""
-
-Formato de salida (máx. 6 líneas):
-1) Stack principal y lenguajes
-2) Frameworks/tecnologías
-3) Experiencia/tiempo (si aparece)
-4) Seniority percibido (si aparece)
-5) Señales destacadas
-6) Riesgos o dudas
-`.trim()
+      const prompt = profileSummaryPrompt
+        .replace('{{profileUrl}}', interview?.profileUrl || 'N/D')
+        .replace('{{profileText}}', profileSourceQuery.data?.slice(0, 12000) || '')
 
       try {
         const result = await session.prompt(prompt)
@@ -318,6 +304,7 @@ Formato de salida (máx. 6 líneas):
     isAiAvailable: Boolean(availabilityQuery.data),
     profileSource: profileSourceQuery.data,
     profileSummary: profileSummaryQuery.data,
+    isLoading: profileSummaryQuery.isLoading,
     prompt,
     data: conclusionsQuery.data,
     items,
@@ -327,6 +314,7 @@ Formato de salida (máx. 6 líneas):
     isDownloading,
     downloadProgress,
     STEP_LABELS,
+    finalConclusion: conclusionsQuery.data?.finalConclusion || '',
   }
 }
 
