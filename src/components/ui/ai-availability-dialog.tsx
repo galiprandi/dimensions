@@ -13,6 +13,7 @@ export const AiAvailabilityDialog = ({ isOpen, setIsOpen }: BaseDialogProps) => 
     className="w-[50rem] sm:max-w-3xl"
     bodyClassName="space-y-4"
     title="La generación con IA no está disponible."
+    description="Instrucciones para habilitar la generación con IA."
   >
     <div className="space-y-4 text-sm text-muted-foreground">
       <ol className="list-decimal pl-5 space-y-2">

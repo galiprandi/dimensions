@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { HelpCircle } from 'lucide-react'
 
 interface TopicsDialogProps {
@@ -11,8 +18,8 @@ interface TopicsDialogProps {
 
 export function TopicsDialog({
   topics,
-  title = "Tópicos",
-  icon: Icon = HelpCircle
+  title = 'Tópicos',
+  icon: Icon = HelpCircle,
 }: TopicsDialogProps) {
   const [open, setOpen] = useState(false)
 
@@ -30,12 +37,16 @@ export function TopicsDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>Lista de tópicos disponibles</DialogDescription>
         </DialogHeader>
         <div className="mt-4 max-h-[60vh] overflow-y-auto">
           <ul className="space-y-1">
             {topics && topics.length > 0 ? (
               topics.map((topic, index) => (
-                <li key={index} className="rounded-lg px-3 py-1 text-sm hover:bg-muted/50 transition-colors">
+                <li
+                  key={index}
+                  className="rounded-lg px-3 py-1 text-sm hover:bg-muted/50 transition-colors"
+                >
                   <span className="text-foreground">{topic}</span>
                 </li>
               ))

@@ -19,6 +19,7 @@ export const AiProgressDialog = ({ isOpen, setIsOpen, interviewId }: ProgressDia
       className="w-[30rem] sm:max-w-3xl"
       bodyClassName="space-y-4"
       title="Generando conclusiones con IA"
+      description="Generando conclusiones utilizando inteligencia artificial."
     >
       <div className="space-y-3 text-sm">
         {STEP_LABELS.map((step, idx) => {

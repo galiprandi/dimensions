@@ -44,9 +44,9 @@ Objetivo:
 2. Al finalizar la entrevista:
    - Pego mis observaciones junto a un **system prompt** en un modelo.
    - Obtengo conclusiones profesionales por cada dimención y una conclusión final.
-   - Reviso el resultado y lo copio/pego nuevamente en el perfíl del candidato.
+   - Reviso el resultado y lo copio/pego nuevamente en el perfil del candidato.
 
-### 3. Conclusión final
+### Conclusión final
 
 Luego de redactar las conclusiones por dimención, se redacta una **conclusión final** que resume el desempeño general del candidato considerando todas las dimenciones.
 
@@ -55,6 +55,16 @@ La conclusión final debe:
 - Sintetizar patrones (fortalezas, debilidades, tradeoffs)
 - Indicar nivel de adecuación al rol (Frontend/ Full Stack) según la evidencia
 - Ser consistente con las conclusiones por dimención
+
+## Guía para prompt de conclusiones JSON
+
+- Siempre incluir **todas** las dimensiones y main stacks con su `dimensionId`/`stackId`, aun cuando no haya notas; si no hay evidencia, marcar `"conclusion": "Sin conclusión"`.
+- No filtrar dimensiones/stacks por falta de notas al construir el prompt; listarlos para que el modelo devuelva un ítem por cada ID.
+- Respetar el orden de los IDs tal como se listan en las notas para mantener correlación.
+- Priorizar las notas del entrevistador como fuente principal; la reseña de perfil es complementaria y no debe introducir datos nuevos.
+- Longitud: la guía pide ~400 caracteres por conclusión y ~500 para la final, pero si la evidencia es breve, priorizar precisión sobre rellenar; evitar invenciones.
+- Validar la respuesta del modelo: asegurar JSON válido, que cada `dimensionId` esperado esté presente y que `conclusion` sea string; rechazar si hay faltantes.
+- Recordatorio de formato: solo JSON plano sin markdown ni campos extra; `items: [{ dimensionId, conclusion }], finalConclusion`.
 
 ## Reglas de Desarrollo
 

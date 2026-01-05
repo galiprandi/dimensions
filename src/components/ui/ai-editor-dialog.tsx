@@ -30,6 +30,7 @@ export const AiEditorDialog = ({
       className="w-4/5"
       bodyClassName="space-y-4"
       title="Conclusiones generadas"
+      description="Editando las conclusiones generadas por IA."
       actions={
         <Button variant="outline" size="sm" onClick={generate} disabled={isGenerating}>
           {isGenerating ? (

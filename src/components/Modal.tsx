@@ -2,9 +2,10 @@ import { useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog'
 
 type Props = {
   title: string
@@ -32,6 +33,7 @@ export function Modal(props: Props) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>Contenido del modal</DialogDescription>
         </DialogHeader>
         {children}
       </DialogContent>

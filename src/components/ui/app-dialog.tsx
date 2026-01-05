@@ -3,6 +3,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -44,7 +45,9 @@ export function AppDialog({
           <div className="space-y-1">
             <DialogTitle>{title}</DialogTitle>
             {description ? (
-              <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+              <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                {description}
+              </DialogDescription>
             ) : null}
           </div>
           <div className="flex items-center gap-2">

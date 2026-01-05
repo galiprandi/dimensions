@@ -19,6 +19,7 @@ export const AiDownloadDialog = ({ isOpen, setIsOpen, interviewId }: DownloadDia
       className="w-[30rem] p-6"
       bodyClassName="space-y-4"
       title="Descargando modelo de IA…"
+      description="Descargando el modelo de IA necesario para generar conclusiones."
     >
       <div className="space-y-3 text-sm">
         <p className="text-base font-medium text-foreground">Descargando modelo de IA…</p>
