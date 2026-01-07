@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useRef } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { AppDialog } from '@/components/ui/app-dialog'
 import { ButtonIcon } from '@/components/ui/button-icon'
-import { Copy, Check, FileDiff } from 'lucide-react'
+import { Copy, Check, FileDiff, Volume2, Pause, Play } from 'lucide-react'
 import { toast } from 'sonner'
 import { TopicsDialog } from './TopicsDialog'
 import { API_URL } from '@/lib/api'
@@ -26,6 +26,10 @@ export function EvaluationItem({
   const [localConclusion, setLocalConclusion] = useState(item.conclusion)
   const [copied, setCopied] = useState(false)
   const [isCompareOpen, setIsCompareOpen] = useState(false)
+
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
 
   const queryClient = useQueryClient()
 
@@ -122,11 +126,64 @@ export function EvaluationItem({
     }
   }
 
+  const handleSpeech = () => {
+    if (!localConclusion.trim()) return
+    if (!isSpeaking) {
+      // Start speaking
+      const utterance = new SpeechSynthesisUtterance(localConclusion)
+      utterance.lang = 'es-ES'
+      utterance.onstart = () => {
+        setIsSpeaking(true)
+        setIsPaused(false)
+      }
+      utterance.onend = () => {
+        setIsSpeaking(false)
+        setIsPaused(false)
+      }
+      utterance.onpause = () => {
+        setIsPaused(true)
+      }
+      utterance.onresume = () => {
+        setIsPaused(false)
+      }
+      utteranceRef.current = utterance
+      speechSynthesis.speak(utterance)
+    } else if (isPaused) {
+      // Resume
+      speechSynthesis.resume()
+    } else {
+      // Pause
+      speechSynthesis.pause()
+    }
+  }
+
+  const handleCancel = () => {
+    speechSynthesis.cancel()
+    setIsSpeaking(false)
+    setIsPaused(false)
+  }
+
   return (
     <div className="space-y-3 max-w-[1620px] w-full">
       <div className="flex items-center justify-between gap-4">
         <h3 className="font-semibold text-lg text-foreground">{item.label}</h3>
         <div className="flex items-center gap-2">
+          <ButtonIcon
+            onClick={handleSpeech}
+            onDoubleClick={handleCancel}
+            disabled={!localConclusion.trim()}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            tooltip={!isSpeaking ? 'Leer conclusión en voz alta' : isPaused ? 'Reanudar' : 'Pausar'}
+            icon={
+              !isSpeaking ? (
+                <Volume2 className="h-4 w-4" />
+              ) : isPaused ? (
+                <Play className="h-4 w-4" />
+              ) : (
+                <Pause className="h-4 w-4" />
+              )
+            }
+          />
           {mode !== 'editOnly' && topics.length > 0 && (
             <TopicsDialog topics={topics} title="Tópicos" />
           )}
